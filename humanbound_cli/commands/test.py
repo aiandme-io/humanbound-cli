@@ -1,0 +1,448 @@
+"""Test command for running security experiments."""
+
+import click
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+import time
+
+from ..client import HumanboundClient
+from ..exceptions import NotAuthenticatedError, APIError
+
+console = Console()
+
+# Available test categories
+TEST_CATEGORIES = [
+    "humanbound/adversarial/owasp_single_turn",
+    "humanbound/adversarial/owasp_multi_turn",
+    "humanbound/adversarial/owasp_agentic_multi_turn",
+    "humanbound/behavioral/behavioral",
+]
+
+# Testing levels (must match backend TestingLevel enum)
+# unit (~20 min), system (~45 min), acceptance (~90 min)
+TESTING_LEVELS = ["unit", "system", "acceptance"]
+
+# ISO 639-1 language codes to full name mapping
+LANG_CODE_MAP = {
+    "af": "afrikaans", "am": "amharic", "ar": "arabic", "az": "azerbaijani",
+    "be": "belarusian", "bg": "bulgarian", "bn": "bengali", "bs": "bosnian",
+    "ca": "catalan", "cs": "czech", "cy": "welsh", "da": "danish",
+    "de": "german", "el": "greek", "en": "english", "es": "spanish",
+    "et": "estonian", "eu": "basque", "fa": "persian", "fi": "finnish",
+    "fr": "french", "ga": "irish", "gl": "galician", "gu": "gujarati",
+    "he": "hebrew", "hi": "hindi", "hr": "croatian", "hu": "hungarian",
+    "hy": "armenian", "id": "indonesian", "is": "icelandic", "it": "italian",
+    "ja": "japanese", "ka": "georgian", "kk": "kazakh", "km": "khmer",
+    "kn": "kannada", "ko": "korean", "lb": "luxembourgish", "lo": "lao",
+    "lt": "lithuanian", "lv": "latvian", "mk": "macedonian", "ml": "malayalam",
+    "mn": "mongolian", "mr": "marathi", "ms": "malay", "mt": "maltese",
+    "my": "burmese", "nb": "norwegian", "ne": "nepali", "nl": "dutch",
+    "no": "norwegian", "pa": "punjabi", "pl": "polish", "pt": "portuguese",
+    "ro": "romanian", "ru": "russian", "si": "sinhala", "sk": "slovak",
+    "sl": "slovenian", "sq": "albanian", "sr": "serbian", "sv": "swedish",
+    "sw": "swahili", "ta": "tamil", "te": "telugu", "th": "thai",
+    "tl": "tagalog", "tr": "turkish", "uk": "ukrainian", "ur": "urdu",
+    "uz": "uzbek", "vi": "vietnamese", "zh": "chinese",
+}
+
+
+
+@click.command("test")
+@click.option(
+    "--test-category", "-t",
+    type=click.Choice(TEST_CATEGORIES, case_sensitive=False),
+    default="humanbound/adversarial/owasp_multi_turn",
+    help="Test category to run"
+)
+@click.option(
+    "--testing-level", "-l",
+    type=click.Choice(TESTING_LEVELS, case_sensitive=False),
+    default="unit",
+    help="Testing depth level"
+)
+@click.option(
+    "--name", "-n",
+    help="Experiment name (auto-generated if not provided)"
+)
+@click.option(
+    "--lang",
+    default="english",
+    help="Language for test prompts (default: english). Accepts codes (en, de, es) or full names."
+)
+@click.option(
+    "--provider-id",
+    help="Provider ID to use (default: first available or default provider)"
+)
+# -- Chat completion endpoint (required for auto-start) --
+@click.option(
+    "--chat-endpoint",
+    help="Chat completion endpoint URL of the bot to test"
+)
+@click.option(
+    "--chat-header",
+    multiple=True,
+    help="Header for chat endpoint (format: 'Key: Value'). Repeatable."
+)
+@click.option(
+    "--chat-payload",
+    help="JSON payload template for chat endpoint"
+)
+# -- Thread init endpoint (optional) --
+@click.option(
+    "--init-endpoint",
+    help="Thread initialization endpoint URL"
+)
+@click.option(
+    "--init-header",
+    multiple=True,
+    help="Header for init endpoint (format: 'Key: Value'). Repeatable."
+)
+@click.option(
+    "--init-payload",
+    help="JSON payload template for init endpoint"
+)
+# -- Auth endpoint (optional) --
+@click.option(
+    "--auth-endpoint",
+    help="Auth endpoint URL (for session/token auth before testing)"
+)
+@click.option(
+    "--auth-header",
+    multiple=True,
+    help="Header for auth endpoint (format: 'Key: Value'). Repeatable."
+)
+@click.option(
+    "--auth-payload",
+    help="JSON payload for auth endpoint"
+)
+# -- Behaviour flags --
+@click.option(
+    "--adaptive",
+    is_flag=True,
+    default=False,
+    help="Enable adaptive mode (evolutionary attack strategy). Works with owasp_multi_turn and owasp_agentic_multi_turn."
+)
+@click.option(
+    "--streaming",
+    is_flag=True,
+    default=False,
+    help="Enable streaming mode (requires wss:// chat endpoint)"
+)
+@click.option(
+    "--no-auto-start",
+    is_flag=True,
+    default=False,
+    help="Create experiment without auto-starting (manual mode)"
+)
+@click.option(
+    "--wait", "-w",
+    is_flag=True,
+    help="Wait for experiment to complete"
+)
+@click.option(
+    "--fail-on",
+    type=click.Choice(["critical", "high", "medium", "low", "any"]),
+    help="Exit with error if findings of this severity or higher are found"
+)
+def test_command(test_category: str, testing_level: str, name: str, lang: str,
+                 provider_id: str,
+                 chat_endpoint: str, chat_header: tuple, chat_payload: str,
+                 init_endpoint: str, init_header: tuple, init_payload: str,
+                 auth_endpoint: str, auth_header: tuple, auth_payload: str,
+                 adaptive: bool, streaming: bool, no_auto_start: bool,
+                 wait: bool, fail_on: str):
+    """Run security tests on the current project.
+
+    Creates and starts a new experiment with the specified configuration.
+    Each endpoint (chat, init, auth) can have its own headers and payload.
+
+    \b
+    Examples:
+      hb test --chat-endpoint https://bot.example.com/chat --chat-header "x-api-key: sk-..."
+      hb test --chat-endpoint https://bot.example.com/chat --init-endpoint https://bot.example.com/start
+      hb test --chat-endpoint https://bot.example.com/chat \\
+        --chat-header "Authorization: Bearer token" \\
+        --chat-payload '{"model": "gpt-4", "content": "$PROMPT"}' \\
+        --auth-endpoint https://bot.example.com/auth \\
+        --auth-payload '{"client_id": "xxx"}'
+      hb test --wait --fail-on=high             # CI/CD mode
+    """
+    client = HumanboundClient()
+
+    if not client.is_authenticated():
+        console.print("[red]Not authenticated.[/red] Run 'hb login' first.")
+        raise SystemExit(1)
+
+    if not client.project_id:
+        console.print("[yellow]No project selected.[/yellow]")
+        console.print("Use 'hb projects use <id>' to select a project first.")
+        raise SystemExit(1)
+
+    # Convert language code to full name if needed (e.g. "en" -> "english")
+    lang = LANG_CODE_MAP.get(lang.lower(), lang)
+
+    # Generate name if not provided
+    if not name:
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        category_short = test_category.split("/")[-1]
+        name = f"cli-{category_short}-{timestamp}"
+
+    console.print(f"\n[bold]Starting security test:[/bold] {name}\n")
+    console.print(f"  Category: {test_category}")
+    console.print(f"  Level: {testing_level}")
+    if adaptive:
+        console.print(f"  Adaptive: enabled")
+    console.print(f"  Language: {lang}")
+    console.print()
+
+    try:
+        # Resolve provider
+        if not provider_id:
+            with console.status("Finding provider..."):
+                providers = client.list_providers()
+            if not providers:
+                console.print("[red]No providers configured.[/red]")
+                console.print("Use 'hb providers add' to configure a model provider first.")
+                raise SystemExit(1)
+            # Use default provider or first available
+            provider = next((p for p in providers if p.get("is_default")), providers[0])
+            provider_id = provider.get("id")
+            console.print(f"  Provider: {provider.get('name', 'unknown').upper()} ({provider_id})")
+
+        # Parse headers from "Key: Value" tuples into dicts
+        def _parse_headers(header_tuples):
+            headers = {}
+            for h in header_tuples:
+                if ":" in h:
+                    key, value = h.split(":", 1)
+                    headers[key.strip()] = value.strip()
+            return headers
+
+        # Parse JSON payload strings
+        def _parse_payload(payload_str):
+            if not payload_str:
+                return {}
+            try:
+                import json
+                return json.loads(payload_str)
+            except json.JSONDecodeError:
+                console.print(f"[red]Invalid JSON payload:[/red] {payload_str[:80]}")
+                raise SystemExit(1)
+
+        parsed_chat_headers = _parse_headers(chat_header)
+        parsed_init_headers = _parse_headers(init_header)
+        parsed_auth_headers = _parse_headers(auth_header)
+
+        parsed_chat_payload = _parse_payload(chat_payload)
+        parsed_init_payload = _parse_payload(init_payload)
+        parsed_auth_payload = _parse_payload(auth_payload)
+
+        # Build configuration
+        auto_start = not no_auto_start
+        chat_ep = chat_endpoint or ""
+        init_ep = init_endpoint or ""
+        auth_ep = auth_endpoint or ""
+
+        if auto_start and not chat_ep and not init_ep:
+            console.print("[red]Endpoint required.[/red] Provide --chat-endpoint for the bot to test.")
+            console.print("[dim]Or use --no-auto-start for manual mode.[/dim]")
+            raise SystemExit(1)
+
+        configuration = {
+            "integration": {
+                "streaming": streaming,
+                "thread_auth": {
+                    "endpoint": auth_ep,
+                    "headers": parsed_auth_headers,
+                    "payload": parsed_auth_payload,
+                },
+                "thread_init": {
+                    "endpoint": init_ep,
+                    "headers": parsed_init_headers,
+                    "payload": parsed_init_payload,
+                },
+                "chat_completion": {
+                    "endpoint": chat_ep,
+                    "headers": parsed_chat_headers,
+                    "payload": parsed_chat_payload,
+                },
+            }
+        }
+
+        # Create experiment
+        experiment_data = {
+            "name": name,
+            "test_category": test_category,
+            "testing_level": testing_level,
+            "lang": lang,
+            "provider_id": provider_id,
+            "configuration": configuration,
+            "auto_start": auto_start,
+            "adaptive_mode": adaptive,
+        }
+
+        with console.status("Creating experiment..."):
+            response = client.post(
+                "experiments",
+                data=experiment_data,
+                include_project=True,
+            )
+
+        experiment_id = response.get("id")
+        if not experiment_id:
+            console.print(f"[red]No experiment ID in response:[/red] {response}")
+            raise SystemExit(1)
+
+        console.print(f"[green]✓[/green] Experiment created: {experiment_id}")
+        console.print(f"[green]✓[/green] Experiment started")
+
+        # Estimate time
+        time_estimates = {
+            "unit": "~20 minutes",
+            "system": "~45 minutes",
+            "acceptance": "~90 minutes",
+        }
+        console.print(f"\n[dim]Estimated time: {time_estimates.get(testing_level, 'unknown')}[/dim]")
+
+        if not wait:
+            console.print(Panel(
+                f"Experiment ID: {experiment_id}\n\n"
+                f"[dim]Check status:[/dim] hb status {experiment_id}\n"
+                f"[dim]Watch progress:[/dim] hb status {experiment_id} --watch\n"
+                f"[dim]Get logs:[/dim] hb logs {experiment_id}",
+                title="Experiment Running",
+                border_style="blue"
+            ))
+            return
+
+        # Wait mode - poll for completion
+        console.print("\n[bold]Waiting for completion...[/bold]\n")
+
+        final_status = _wait_for_completion(client, experiment_id)
+
+        # Get final results
+        experiment = client.get_experiment(experiment_id)
+        results = experiment.get("results", {})
+        stats = results.get("stats", {})
+
+        # Display results
+        _display_results(experiment, results, stats)
+
+        # Check fail-on condition
+        if fail_on:
+            exit_code = _check_fail_on(results, fail_on)
+            if exit_code != 0:
+                console.print(f"\n[red]Failing due to --fail-on={fail_on} condition[/red]")
+                raise SystemExit(exit_code)
+
+        if final_status == "Failed":
+            raise SystemExit(1)
+
+    except NotAuthenticatedError:
+        console.print("[red]Not authenticated.[/red] Run 'hb login' first.")
+        raise SystemExit(1)
+    except APIError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+def _wait_for_completion(client: HumanboundClient, experiment_id: str) -> str:
+    """Wait for experiment to complete with progress display."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.fields[logs]}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Running...", total=None, logs="")
+
+        while True:
+            try:
+                status_response = client.get_experiment_status(experiment_id)
+                current_status = status_response.get("status", "Unknown")
+
+                # Get log count
+                experiment = client.get_experiment(experiment_id)
+                results = experiment.get("results", {})
+                stats = results.get("stats", {})
+                total_logs = stats.get("total", 0)
+
+                progress.update(
+                    task,
+                    description=f"Status: {current_status}",
+                    logs=f"{total_logs} logs"
+                )
+
+                if current_status in ("Finished", "Failed", "Terminated"):
+                    break
+
+                time.sleep(10)
+
+            except KeyboardInterrupt:
+                console.print("\n[yellow]Interrupted. Experiment continues in background.[/yellow]")
+                console.print(f"Check status: hb status {experiment_id}")
+                raise SystemExit(0)
+
+    return current_status
+
+
+def _display_results(experiment: dict, results: dict, stats: dict):
+    """Display experiment results."""
+    status = experiment.get("status", "Unknown")
+    status_color = {
+        "Finished": "green",
+        "Running": "yellow",
+        "Failed": "red",
+    }.get(status, "white")
+
+    console.print(Panel(
+        f"[bold]Status:[/bold] [{status_color}]{status}[/{status_color}]\n\n"
+        f"[bold]Results:[/bold]\n"
+        f"  Total logs: {stats.get('total', 0)}\n"
+        f"  [green]Pass:[/green] {stats.get('pass', 0)}\n"
+        f"  [red]Fail:[/red] {stats.get('fail', 0)}\n",
+        title="Experiment Complete",
+        border_style=status_color
+    ))
+
+    # Show insights if available
+    insights = results.get("insights", [])
+    if insights:
+        console.print(f"\n[bold]Top Findings ({len(insights)} total):[/bold]")
+        for i, insight in enumerate(insights[:5], 1):
+            severity = insight.get("severity", "unknown")
+            severity_color = {
+                "critical": "red bold",
+                "high": "red",
+                "medium": "yellow",
+                "low": "blue",
+            }.get(severity.lower(), "white")
+
+            console.print(f"  {i}. [{severity_color}]{severity.upper()}[/{severity_color}]: {insight.get('explanation', '')[:80]}...")
+
+
+def _check_fail_on(results: dict, fail_on: str) -> int:
+    """Check if results meet fail-on condition.
+
+    Returns:
+        Exit code (0 = pass, 1 = fail).
+    """
+    insights = results.get("insights", [])
+
+    severity_levels = ["critical", "high", "medium", "low"]
+
+    if fail_on == "any" and insights:
+        return 1
+
+    fail_on_index = severity_levels.index(fail_on) if fail_on in severity_levels else -1
+
+    for insight in insights:
+        severity = insight.get("severity", "").lower()
+        if severity in severity_levels:
+            severity_index = severity_levels.index(severity)
+            if severity_index <= fail_on_index:
+                return 1
+
+    return 0

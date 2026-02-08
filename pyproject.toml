@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0,<75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "humanbound-cli"
+version = "0.1.0"
+authors = [
+  { name="Kostas Siabanis", email="hello@humanbound.io" },
+  { name="Demetris Gerogiannis", email="hello@humanbound.io" },
+]
+description = "Humanbound CLI - command line interface for AI agent security testing."
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Framework :: Pytest",
+]
+
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "requests>=2.32.0",
+    "pyyaml>=6.0.0",
+]
+
+[project.optional-dependencies]
+pytest = [
+    "pytest>=7.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+hb = "humanbound_cli.main:cli"
+
+[project.entry-points.pytest11]
+hb = "humanbound_cli.pytest_plugin"
+
+[project.urls]
+Homepage = "https://github.com/Humanbound/humanbound-cli"
+Documentation = "https://docs.humanbound.io/cli"
+Issues = "https://github.com/Humanbound/humanbound-cli/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.pytest.ini_options]
+markers = [
+    "hb: mark test as a Humanbound security test",
+    "hb_category(name): mark test for a specific category",
+]

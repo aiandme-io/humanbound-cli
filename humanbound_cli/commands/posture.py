@@ -1,0 +1,224 @@
+"""Posture command for viewing security posture score."""
+
+import click
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.progress import Progress, BarColumn, TextColumn
+
+from ..client import HumanboundClient
+from ..exceptions import NotAuthenticatedError, APIError
+
+console = Console()
+
+
+@click.command("posture")
+@click.option("--project", "-p", help="Project ID (uses current if not specified)")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def posture_command(project: str, as_json: bool):
+    """View security posture score for a project.
+
+    The posture score is a composite metric (0-100) reflecting:
+    - Finding score: Based on open vulnerabilities
+    - Confidence score: Time since last test
+    - Coverage score: Attack categories tested
+    - Drift score: Response pattern changes
+
+    \b
+    Examples:
+      hb posture                    # Show current project posture
+      hb posture --project abc123   # Show specific project
+      hb posture --json             # Output as JSON
+    """
+    client = HumanboundClient()
+
+    if not client.is_authenticated():
+        console.print("[red]Not authenticated.[/red] Run 'hb login' first.")
+        raise SystemExit(1)
+
+    project_id = project or client.project_id
+
+    if not project_id:
+        console.print("[yellow]No project selected.[/yellow]")
+        console.print("Use 'hb projects use <id>' or --project to specify one.")
+        raise SystemExit(1)
+
+    try:
+        # Get posture from API
+        with console.status("Calculating posture..."):
+            response = client.get(f"projects/{project_id}/posture", include_project=True)
+
+        if as_json:
+            import json
+            print(json.dumps(response, indent=2, default=str))
+            return
+
+        _display_posture(response)
+
+    except NotAuthenticatedError:
+        console.print("[red]Not authenticated.[/red] Run 'hb login' first.")
+        raise SystemExit(1)
+    except APIError as e:
+        if "404" in str(e) or "not found" in str(e).lower():
+            # Posture endpoint might not exist yet - calculate from experiments
+            console.print("[yellow]Posture endpoint not available.[/yellow]")
+            console.print("Calculating from recent experiments...")
+            _calculate_fallback_posture(client, project_id)
+        else:
+            console.print(f"[red]Error:[/red] {e}")
+            raise SystemExit(1)
+
+
+def _display_posture(posture: dict):
+    """Display posture score with visual breakdown."""
+    score = posture.get("score", 0)
+    grade = posture.get("grade", _score_to_grade(score))
+
+    # Color based on score
+    if score >= 80:
+        score_color = "green"
+        emoji = "✓"
+    elif score >= 60:
+        score_color = "yellow"
+        emoji = "⚠"
+    else:
+        score_color = "red"
+        emoji = "✗"
+
+    # Main score panel
+    console.print(Panel(
+        f"[bold {score_color}]{emoji} {score}/100[/bold {score_color}]  [dim]Grade: {grade}[/dim]",
+        title="Security Posture",
+        border_style=score_color,
+        padding=(1, 4),
+    ))
+
+    # Breakdown table
+    breakdown = posture.get("breakdown", {})
+    if breakdown:
+        console.print("\n[bold]Score Breakdown:[/bold]\n")
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Component", width=15)
+        table.add_column("Score", width=10, justify="right")
+        table.add_column("Weight", width=10, justify="right")
+        table.add_column("Bar", width=30)
+
+        components = [
+            ("Findings", breakdown.get("finding_score", 0), "40%"),
+            ("Confidence", breakdown.get("confidence_score", 0), "25%"),
+            ("Coverage", breakdown.get("coverage_score", 0), "20%"),
+            ("Drift", breakdown.get("drift_score", 0), "15%"),
+        ]
+
+        for name, comp_score, weight in components:
+            bar = _score_bar(comp_score)
+            color = "green" if comp_score >= 80 else ("yellow" if comp_score >= 60 else "red")
+            table.add_row(
+                name,
+                f"[{color}]{comp_score:.0f}[/{color}]",
+                weight,
+                bar,
+            )
+
+        console.print(table)
+
+    # Recommendations
+    recommendations = posture.get("recommendations", [])
+    if recommendations:
+        console.print("\n[bold]Recommendations:[/bold]")
+        for i, rec in enumerate(recommendations[:3], 1):
+            console.print(f"  {i}. {rec}")
+
+    # Last tested
+    last_tested = posture.get("last_tested")
+    if last_tested:
+        console.print(f"\n[dim]Last tested: {last_tested}[/dim]")
+
+
+def _score_bar(score: float, width: int = 20) -> str:
+    """Create a visual score bar."""
+    filled = int(score / 100 * width)
+    empty = width - filled
+
+    if score >= 80:
+        color = "green"
+    elif score >= 60:
+        color = "yellow"
+    else:
+        color = "red"
+
+    return f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
+
+
+def _score_to_grade(score: float) -> str:
+    """Convert numeric score to letter grade."""
+    if score >= 90:
+        return "A"
+    elif score >= 80:
+        return "B"
+    elif score >= 70:
+        return "C"
+    elif score >= 60:
+        return "D"
+    else:
+        return "F"
+
+
+def _calculate_fallback_posture(client: HumanboundClient, project_id: str):
+    """Calculate posture from experiment data when endpoint is unavailable."""
+    try:
+        # Get recent experiments
+        original_project = client.project_id
+        client.set_project(project_id)
+
+        response = client.list_experiments(page=1, size=10)
+        experiments = response.get("data", [])
+
+        if not experiments:
+            console.print("[yellow]No experiments found. Run 'hb test' first.[/yellow]")
+            return
+
+        # Calculate simple posture from most recent experiment
+        latest = experiments[0]
+        results = latest.get("results", {})
+        stats = results.get("stats", {})
+
+        total = stats.get("total", 0)
+        passed = stats.get("pass", 0)
+        failed = stats.get("fail", 0)
+
+        if total > 0:
+            pass_rate = (passed / total) * 100
+        else:
+            pass_rate = 0
+
+        # Simple score based on pass rate
+        score = min(100, pass_rate)
+
+        posture = {
+            "score": score,
+            "grade": _score_to_grade(score),
+            "breakdown": {
+                "finding_score": pass_rate,
+                "confidence_score": 80,  # Placeholder
+                "coverage_score": 70,    # Placeholder
+                "drift_score": 85,       # Placeholder
+            },
+            "recommendations": [],
+            "last_tested": latest.get("created_at", "")[:10],
+        }
+
+        if pass_rate < 80:
+            posture["recommendations"].append("Address failing security tests")
+        if len(experiments) < 3:
+            posture["recommendations"].append("Run more comprehensive tests")
+
+        _display_posture(posture)
+
+        # Restore original project
+        if original_project:
+            client.set_project(original_project)
+
+    except Exception as e:
+        console.print(f"[red]Error calculating posture:[/red] {e}")
