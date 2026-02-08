@@ -15,6 +15,6 @@ If you encounter any bugs or have feature requests, please open an issue in the 
 3. Any relevant logs or screenshots.
 4. Code of Conduct
 
-Please be respectful and professional in all interactions. Refer to our [page][https://www.humanbound.io] for more details.
+Please be respectful and professional in all interactions. Refer to our [page][https://www.humanbound.ai] for more details.
 
 We appreciate your contributions!

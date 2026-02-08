@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "humanbound-cli"
 version = "0.1.0"
 authors = [
-  { name="Kostas Siabanis", email="hello@humanbound.io" },
-  { name="Demetris Gerogiannis", email="hello@humanbound.io" },
+  { name="Kostas Siabanis", email="hello@humanbound.ai" },
+  { name="Demetris Gerogiannis", email="hello@humanbound.ai" },
 ]
 description = "Humanbound CLI - command line interface for AI agent security testing."
 license = {text = "Apache-2.0"}
@@ -45,7 +45,7 @@ hb = "humanbound_cli.pytest_plugin"
 
 [project.urls]
 Homepage = "https://github.com/Humanbound/humanbound-cli"
-Documentation = "https://docs.humanbound.io/cli"
+Documentation = "https://docs.humanbound.ai/cli"
 Issues = "https://github.com/Humanbound/humanbound-cli/issues"
 
 [tool.setuptools.packages.find]

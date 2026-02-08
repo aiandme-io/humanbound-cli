@@ -10,21 +10,29 @@ console = Console()
 
 # Documentation URLs
 DOCS_URLS = {
-    "home": "https://docs.humanbound.io",
-    "quickstart": "https://docs.humanbound.io/quickstart",
-    "cli": "https://docs.humanbound.io/cli",
-    "api": "https://docs.humanbound.io/api",
-    "owasp": "https://docs.humanbound.io/owasp-llm-top-10",
-    "firewall": "https://docs.humanbound.io/firewall-oss",
-    "examples": "https://docs.humanbound.io/examples",
+    "home": "https://docs.humanbound.ai",
+    "quickstart": "https://docs.humanbound.ai/quickstart",
+    "cli": "https://docs.humanbound.ai/cli",
+    "api": "https://docs.humanbound.ai/api",
+    "owasp": "https://docs.humanbound.ai/owasp-llm-top-10",
+    "firewall": "https://docs.humanbound.ai/firewall-oss",
+    "examples": "https://docs.humanbound.ai/examples",
     "github": "https://github.com/Humanbound/humanbound-cli",
 }
 
 
 @click.command("docs")
 @click.argument("topic", required=False, default="home")
-@click.option("--list", "-l", "list_topics", is_flag=True, help="List available documentation topics")
-@click.option("--no-browser", "-n", is_flag=True, help="Don't open browser, just show URL")
+@click.option(
+    "--list",
+    "-l",
+    "list_topics",
+    is_flag=True,
+    help="List available documentation topics",
+)
+@click.option(
+    "--no-browser", "-n", is_flag=True, help="Don't open browser, just show URL"
+)
 def docs_command(topic: str, list_topics: bool, no_browser: bool):
     """Open Humanbound documentation in your browser.
 
@@ -75,11 +83,13 @@ def docs_command(topic: str, list_topics: bool, no_browser: bool):
 
 def _show_topics():
     """Display available documentation topics."""
-    console.print(Panel(
-        "[bold]Humanbound Documentation[/bold]\n\n"
-        "Use 'hb docs <topic>' to open documentation in your browser.",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Humanbound Documentation[/bold]\n\n"
+            "Use 'hb docs <topic>' to open documentation in your browser.",
+            border_style="blue",
+        )
+    )
 
     table = Table(show_header=True, header_style="bold")
     table.add_column("Topic", width=12)

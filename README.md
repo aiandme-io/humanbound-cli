@@ -467,5 +467,5 @@ hb login
 
 ## Links
 
-- [Documentation](https://docs.humanbound.io)
+- [Documentation](https://docs.humanbound.ai)
 - [GitHub](https://github.com/Humanbound/humanbound-cli)
