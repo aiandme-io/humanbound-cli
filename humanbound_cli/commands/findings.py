@@ -76,7 +76,7 @@ def findings_group(ctx, status, severity, page, size, as_json):
             return
 
         table = Table(title="Findings")
-        table.add_column("ID", style="dim", width=10)
+        table.add_column("ID", style="dim")
         table.add_column("Title", max_width=40)
         table.add_column("Severity", width=10)
         table.add_column("Status", width=10)
@@ -89,7 +89,7 @@ def findings_group(ctx, status, severity, page, size, as_json):
             stat = str(finding.get("status", "")).lower()
 
             table.add_row(
-                str(finding.get("id", ""))[:10],
+                str(finding.get("id", "")),
                 finding.get("title", finding.get("description", ""))[:40],
                 SEVERITY_STYLES.get(sev, sev),
                 STATUS_STYLES.get(stat, stat),

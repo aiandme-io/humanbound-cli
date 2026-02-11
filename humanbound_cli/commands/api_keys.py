@@ -54,7 +54,7 @@ def list_keys(as_json: bool):
             return
 
         table = Table(title="API Keys")
-        table.add_column("ID", style="dim", width=10)
+        table.add_column("ID", style="dim")
         table.add_column("Name", style="bold")
         table.add_column("Scopes")
         table.add_column("Active", justify="center")
@@ -67,7 +67,7 @@ def list_keys(as_json: bool):
             prefix = (key_val[:12] + "...") if len(str(key_val)) > 12 else str(key_val)
 
             table.add_row(
-                str(key.get("id", ""))[:10],
+                str(key.get("id", "")),
                 key.get("name", ""),
                 key.get("scopes", ""),
                 active,

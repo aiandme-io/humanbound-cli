@@ -731,7 +731,7 @@
             <div class="logo-section">
                 <img src="https://cdneunorth.blob.core.windows.net/data/humanbound_logo.png" alt="Humanbound Logo">
                 <h1>CLI Documentation</h1>
-                <span class="version-badge">v0.2.0</span>
+                <span class="version-badge">v0.3.3</span>
             </div>
             <div class="hamburger" id="hamburger">
                 <span></span>
@@ -1075,7 +1075,10 @@ hb test -t humanbound/adversarial/owasp_multi_turn
 hb test -t humanbound/adversarial/owasp_agentic_multi_turn
 
 <span class="comment"># Behavioral testing (functionality, consistency)</span>
-hb test -t humanbound/behavioral/behavioral</code></pre>
+hb test -t humanbound/behavioral/qa
+
+<span class="comment"># Custom / client-specific test categories</span>
+hb test -t viva/behavioral/sofia_escalation_trigger</code></pre>
                     </div>
                 </div>
 
@@ -1130,11 +1133,14 @@ hb test -e '{"streaming": false, "chat_completion": {"endpoint": "https://bot.ex
                 <div class="code-block-wrapper">
                     <button class="copy-button" onclick="copyCode(this)">Copy</button>
                     <div class="code-block">
-                        <pre><code><span class="comment"># Check experiment status</span>
+                        <pre><code><span class="comment"># Check latest experiment status</span>
 hb status
 
 <span class="comment"># Live status updates</span>
 hb status --watch
+
+<span class="comment"># Dashboard: all experiments with 60s polling</span>
+hb status --all
 
 <span class="comment"># View latest experiment logs</span>
 hb logs
@@ -1276,9 +1282,11 @@ hb posture</code></pre>
                         <pre><code>hb test [OPTIONS]
 
 <span class="comment">Test Configuration:</span>
-  -t, --test-category     Test to run (default: owasp_multi_turn)
+  -t, --test-category     Test to run (default: humanbound/adversarial/owasp_multi_turn)
+                          Accepts any category path (e.g. viva/behavioral/sofia_kb_quoting)
   -l, --testing-level     Depth: unit | system | acceptance
   -n, --name              Experiment name (auto-generated if omitted)
+  -d, --description       Experiment description
   --lang                  Language (default: english). Accepts codes: en, de, es
   --provider-id           Provider to use (default: first available)
 
@@ -1391,8 +1399,11 @@ hb projects delete &lt;id&gt; --force</code></pre>
                         <pre><code><span class="comment"># Single status check</span>
 hb experiments status &lt;id&gt;
 
-<span class="comment"># Live updates (refreshes every 5 seconds)</span>
-hb experiments status &lt;id&gt; --watch</code></pre>
+<span class="comment"># Live updates (refreshes every 10 seconds)</span>
+hb experiments status &lt;id&gt; --watch
+
+<span class="comment"># Dashboard: all experiments, polls every 60s until all complete</span>
+hb experiments status --all</code></pre>
                     </div>
                 </div>
 
@@ -1451,12 +1462,11 @@ hb experiments delete &lt;id&gt; --force</code></pre>
 
             <section id="security-posture">
                 <h2>Security Posture</h2>
-                <p>The security posture score (0-100) provides a comprehensive view of your AI agent's security health. It's composed of three weighted factors:</p>
-
+                <p>The security posture score (0-100) provides a comprehensive view of your AI agent's security health. The formula is:</p>
+                <p><code>posture = 100 &times; (1 - severity_impact) &times; coverage_effectiveness</code></p>
                 <ul>
-                    <li><strong>Finding Score (40%)</strong>: Based on open, stale, and regressed vulnerabilities</li>
-                    <li><strong>Coverage Score (30%)</strong>: Attack categories and techniques tested</li>
-                    <li><strong>Resilience Score (30%)</strong>: Pass rates and judge confidence levels</li>
+                    <li><strong>Severity Impact</strong>: Weighted sum of active findings (by severity and status)</li>
+                    <li><strong>Coverage Effectiveness</strong>: Ratio of tested threat classes with acceptable pass rates</li>
                 </ul>
 
                 <h3>View Current Posture</h3>
@@ -2069,14 +2079,26 @@ security-test:
                 <h2>Authentication &amp; Context</h2>
                 <p>Manage authentication, organisation context, and access to documentation.</p>
 
+                <h3>Version</h3>
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code>hb --version</code></pre>
+                    </div>
+                </div>
+
                 <h3>Login</h3>
                 <div class="code-block-wrapper">
                     <button class="copy-button" onclick="copyCode(this)">Copy</button>
                     <div class="code-block">
-                        <pre><code>hb login</code></pre>
+                        <pre><code><span class="comment"># Standard login (api.humanbound.ai)</span>
+hb login
+
+<span class="comment"># On-prem: login against a custom API endpoint</span>
+hb --base-url https://my-server.com/api login</code></pre>
                     </div>
                 </div>
-                <p>Opens your browser for OAuth authentication. Credentials are stored locally at <code>~/.humanbound/</code>.</p>
+                <p>Opens your browser for OAuth authentication. Credentials are stored locally at <code>~/.humanbound/</code>. When using <code>--base-url</code>, the custom endpoint is persisted for subsequent commands.</p>
 
                 <h3>Logout</h3>
                 <div class="code-block-wrapper">
@@ -2123,6 +2145,20 @@ hb docs quickstart</code></pre>
             <section id="command-reference">
                 <h2>Command Reference</h2>
                 <p>Complete reference of all available commands, organized by category.</p>
+
+                <div class="command-group">
+                    <h3>Global</h3>
+                    <div class="command-grid">
+                        <div class="command-card">
+                            <h4>hb --version</h4>
+                            <p>Print CLI version</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb --base-url URL</h4>
+                            <p>Use custom API endpoint (on-prem installations)</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="command-group">
                     <h3>Authentication</h3>
@@ -2196,8 +2232,8 @@ hb docs quickstart</code></pre>
                             <p>Show detailed experiment information</p>
                         </div>
                         <div class="command-card">
-                            <h4>hb experiments status &lt;id&gt;</h4>
-                            <p>Check experiment status (single or watch mode)</p>
+                            <h4>hb experiments status [id] [--all]</h4>
+                            <p>Check experiment status (single, watch, or all-experiments dashboard)</p>
                         </div>
                         <div class="command-card">
                             <h4>hb experiments wait &lt;id&gt;</h4>
@@ -2216,8 +2252,8 @@ hb docs quickstart</code></pre>
                             <p>Delete experiment and logs</p>
                         </div>
                         <div class="command-card">
-                            <h4>hb status</h4>
-                            <p>Check status of latest experiment (alias)</p>
+                            <h4>hb status [--all]</h4>
+                            <p>Check status of latest experiment or all experiments (alias)</p>
                         </div>
                     </div>
                 </div>

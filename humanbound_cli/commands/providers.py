@@ -47,7 +47,7 @@ def list_providers():
             return
 
         table = Table(title="Model Providers")
-        table.add_column("ID", style="dim", width=12)
+        table.add_column("ID", style="dim")
         table.add_column("Name", style="bold")
         table.add_column("Model", width=25)
         table.add_column("Default", justify="center")

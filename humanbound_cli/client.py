@@ -471,16 +471,24 @@ class HumanboundClient:
 
     def _exchange_for_api_token(self) -> None:
         """Exchange Auth0 token for API session token."""
-        response = requests.get(
-            f"{self.base_url}/auth",
-            headers={"Authorization": f"Bearer {self._auth0_token}"},
-            timeout=DEFAULT_TIMEOUT,
-        )
+        try:
+            response = requests.get(
+                f"{self.base_url}/auth",
+                headers={"Authorization": f"Bearer {self._auth0_token}"},
+                timeout=DEFAULT_TIMEOUT,
+            )
+        except requests.ConnectionError:
+            raise AuthenticationError(f"Could not connect to {self.base_url}. Is the server running?")
+        except requests.Timeout:
+            raise AuthenticationError(f"Connection to {self.base_url} timed out.")
 
         if response.status_code != 200:
-            raise AuthenticationError(f"API authentication failed: {response.text}")
+            raise AuthenticationError(f"API authentication failed ({response.status_code}): {response.text}")
 
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception:
+            raise AuthenticationError(f"API returned invalid response from {self.base_url}/auth")
         self._api_token = data.get("access_token") or data.get("token")
         if not self._api_token:
             raise AuthenticationError("No access token in API response")
@@ -537,6 +545,10 @@ class HumanboundClient:
             self._username = credentials.get("username")
             self._email = credentials.get("email")
             self._default_organisation_id = credentials.get("default_organisation_id")
+            # Restore saved base_url unless explicitly overridden via --base-url or env var
+            saved_url = credentials.get("base_url")
+            if saved_url and self.base_url == get_base_url().rstrip("/"):
+                self.base_url = saved_url.rstrip("/")
 
     def _load_credentials_file(self) -> dict:
         """Load credentials file."""

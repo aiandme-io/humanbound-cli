@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from ..client import HumanboundClient
+from ..config import DEFAULT_BASE_URL
 from ..exceptions import AuthenticationError, APIError
 
 console = Console()
@@ -50,9 +51,14 @@ def login(base_url: str, port: int, force: bool):
             except Exception as e:
                 org_display = f"{client.default_organisation_id} (could not resolve name: {e})"
 
+        base_url_line = ""
+        if client.base_url.rstrip("/") != DEFAULT_BASE_URL.rstrip("/"):
+            base_url_line = f"Base URL: {client.base_url}\n"
+
         console.print(Panel(
             f"[green]Login successful![/green]\n\n"
             f"User: {client.username or 'unknown'}\n"
+            f"{base_url_line}"
             f"Organisation: {org_display}",
             title="Humanbound",
         ))
@@ -109,7 +115,7 @@ def logout(revoke: bool, port: int):
         finally:
             server.server_close()
 
-        console.print("[green]Browser session revoked.[/green]")
+        console.print("[green]Browser session revoked. Base URL reset to default.[/green]")
     else:
         console.print(
             "[dim]Note: Your browser may still have an active Auth0 session. "
@@ -135,11 +141,15 @@ def whoami():
             except Exception as e:
                 org_display = f"{client.organisation_id} [dim](could not resolve name: {e})[/dim]"
 
+        base_url_line = ""
+        if client.base_url.rstrip("/") != DEFAULT_BASE_URL.rstrip("/"):
+            base_url_line = f"Base URL: {client.base_url}\n"
+
         console.print(Panel(
             f"[green]Authenticated[/green]\n\n"
             f"User: {client.username or '[dim]unknown[/dim]'}\n"
             f"Email: {client.email or '[dim]unknown[/dim]'}\n"
-            f"Base URL: {client.base_url}\n"
+            f"{base_url_line}"
             f"Organisation: {org_display}\n"
             f"Project: {client.project_id or '[dim]not set[/dim]'}",
             title="Humanbound Status",

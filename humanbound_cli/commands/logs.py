@@ -127,7 +127,7 @@ def _show_table(client: HumanboundClient, experiment_id: str, verdict: str, page
         return
 
     table = Table(title=f"Experiment Logs (page {page})")
-    table.add_column("ID", style="dim", width=10)
+    table.add_column("ID", style="dim")
     table.add_column("Verdict", width=6)
     table.add_column("Severity", width=8)
     table.add_column("Category", width=15)

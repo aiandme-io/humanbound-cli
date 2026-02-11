@@ -142,18 +142,33 @@ def show_experiment(experiment_id: str):
 
 
 @experiments_group.command("status")
-@click.argument("experiment_id")
+@click.argument("experiment_id", required=False)
 @click.option("--watch", "-w", is_flag=True, help="Watch status until completion")
 @click.option("--interval", default=10, help="Polling interval in seconds (with --watch)")
-def experiment_status(experiment_id: str, watch: bool, interval: int):
+@click.option("--all", "show_all", is_flag=True, help="Show status of all project experiments (polls every 60s)")
+def experiment_status(experiment_id: str, watch: bool, interval: int, show_all: bool):
     """Check experiment status.
 
-    EXPERIMENT_ID: Experiment UUID.
+    EXPERIMENT_ID: Experiment UUID (optional with --all).
+
+    \b
+    Examples:
+      hb experiments status <id>           # One-shot status
+      hb experiments status <id> --watch   # Poll single experiment
+      hb experiments status --all          # Dashboard of all experiments (polls 60s)
     """
     client = HumanboundClient()
 
     if not client.project_id:
         console.print("[yellow]No project selected.[/yellow]")
+        raise SystemExit(1)
+
+    if show_all:
+        _poll_all_experiments(client)
+        return
+
+    if not experiment_id:
+        console.print("[red]Provide an experiment ID or use --all.[/red]")
         raise SystemExit(1)
 
     try:
@@ -199,6 +214,94 @@ def experiment_status(experiment_id: str, watch: bool, interval: int):
         raise SystemExit(1)
     except KeyboardInterrupt:
         console.print("\n[yellow]Stopped watching.[/yellow]")
+
+
+ACTIVE_STATUSES = ["Running", "Generating", "Generated", "Pending"]
+
+
+def _poll_all_experiments(client: HumanboundClient):
+    """Poll all project experiments every 60s until none are active."""
+    try:
+        cycle = 0
+        while True:
+            # Fetch all experiments (up to 200)
+            all_exps = []
+            page = 1
+            while True:
+                response = client.list_experiments(page=page, size=100)
+                all_exps.extend(response.get("data", []))
+                if not response.get("has_next_page"):
+                    break
+                page += 1
+
+            if not all_exps:
+                console.print("[yellow]No experiments found.[/yellow]")
+                return
+
+            active = [e for e in all_exps if e.get("status") in ACTIVE_STATUSES]
+            finished = [e for e in all_exps if e.get("status") == "Finished"]
+            failed = [e for e in all_exps if e.get("status") == "Failed"]
+
+            # Clear screen on subsequent cycles
+            if cycle > 0:
+                console.clear()
+
+            timestamp = time.strftime("%H:%M:%S")
+            console.print(f"[bold]Project Experiments[/bold]  [dim]{timestamp}[/dim]\n")
+            console.print(
+                f"  Total: {len(all_exps)}  "
+                f"[green]Finished: {len(finished)}[/green]  "
+                f"[yellow]Active: {len(active)}[/yellow]  "
+                f"[red]Failed: {len(failed)}[/red]\n"
+            )
+
+            table = Table()
+            table.add_column("Name", style="bold", max_width=35)
+            table.add_column("Status", width=12)
+            table.add_column("Category", width=20)
+            table.add_column("ID", style="dim")
+
+            for exp in all_exps:
+                status = exp.get("status", "Unknown")
+                status_style = {
+                    "Finished": "[green]Finished[/green]",
+                    "Running": "[yellow]Running[/yellow]",
+                    "Failed": "[red]Failed[/red]",
+                    "Generating": "[cyan]Generating[/cyan]",
+                    "Generated": "[blue]Generated[/blue]",
+                    "Pending": "[dim]Pending[/dim]",
+                    "Terminated": "[red]Terminated[/red]",
+                }.get(status, status)
+
+                cat = exp.get("test_category", "")
+                if "/" in cat:
+                    cat = cat.split("/")[-1]
+
+                table.add_row(
+                    exp.get("name", ""),
+                    status_style,
+                    cat,
+                    exp.get("id", ""),
+                )
+
+            console.print(table)
+
+            if not active:
+                console.print(f"\n[green]All experiments completed.[/green]")
+                return
+
+            console.print(f"\n[dim]{len(active)} active — polling every 60s (Ctrl+C to stop)[/dim]")
+            time.sleep(60)
+            cycle += 1
+
+    except NotAuthenticatedError:
+        console.print("[red]Not authenticated.[/red] Run 'hb login' first.")
+        raise SystemExit(1)
+    except APIError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Stopped polling.[/yellow]")
 
 
 def _print_status(status: dict):

@@ -156,7 +156,7 @@ def break_campaign(force: bool):
             return
 
         if not force:
-            if not Confirm.ask(f"Break campaign [bold]{campaign_id[:10]}...[/bold]? Running experiments will be stopped"):
+            if not Confirm.ask(f"Break campaign [bold]{campaign_id}[/bold]? Running experiments will be stopped"):
                 console.print("[dim]Cancelled.[/dim]")
                 return
 

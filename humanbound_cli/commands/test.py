@@ -13,13 +13,8 @@ from ..exceptions import NotAuthenticatedError, APIError
 
 console = Console()
 
-# Available test categories
-TEST_CATEGORIES = [
-    "humanbound/adversarial/owasp_single_turn",
-    "humanbound/adversarial/owasp_multi_turn",
-    "humanbound/adversarial/owasp_agentic_multi_turn",
-    "humanbound/behavioral/behavioral",
-]
+# Default test category
+DEFAULT_TEST_CATEGORY = "humanbound/adversarial/owasp_multi_turn"
 
 # Testing levels (must match backend TestingLevel enum)
 # unit (~20 min), system (~45 min), acceptance (~90 min)
@@ -62,7 +57,7 @@ def _load_integration(value: str) -> dict:
             raise SystemExit(1)
 
     try:
-        return json.loads(value)
+        return json.loads(value.strip())
     except json.JSONDecodeError:
         console.print(f"[red]--endpoint must be a JSON string or path to a JSON file.[/red]")
         console.print("[dim]Example: --endpoint ./bot-config.json[/dim]")
@@ -73,9 +68,8 @@ def _load_integration(value: str) -> dict:
 @click.command("test")
 @click.option(
     "--test-category", "-t",
-    type=click.Choice(TEST_CATEGORIES, case_sensitive=False),
-    default="humanbound/adversarial/owasp_multi_turn",
-    help="Test category to run"
+    default=DEFAULT_TEST_CATEGORY,
+    help="Test category to run (e.g. humanbound/adversarial/owasp_multi_turn, humanbound/behavioral/qa)"
 )
 @click.option(
     "--testing-level", "-l",
@@ -86,6 +80,11 @@ def _load_integration(value: str) -> dict:
 @click.option(
     "--name", "-n",
     help="Experiment name (auto-generated if not provided)"
+)
+@click.option(
+    "--description", "-d",
+    default="",
+    help="Experiment description"
 )
 @click.option(
     "--lang",
@@ -117,8 +116,8 @@ def _load_integration(value: str) -> dict:
     type=click.Choice(["critical", "high", "medium", "low", "any"]),
     help="Exit with error if findings of this severity or higher are found"
 )
-def test_command(test_category: str, testing_level: str, name: str, lang: str,
-                 provider_id: str, endpoint: str,
+def test_command(test_category: str, testing_level: str, name: str, description: str,
+                 lang: str, provider_id: str, endpoint: str,
                  no_auto_start: bool,
                  wait: bool, fail_on: str):
     """Run security tests on the current project.
@@ -185,6 +184,7 @@ def test_command(test_category: str, testing_level: str, name: str, lang: str,
         # Create experiment
         experiment_data = {
             "name": name,
+            "description": description,
             "test_category": test_category,
             "testing_level": testing_level,
             "lang": lang,

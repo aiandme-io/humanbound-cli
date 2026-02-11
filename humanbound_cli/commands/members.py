@@ -55,7 +55,7 @@ def list_members(as_json: bool):
             return
 
         table = Table(title="Organisation Members")
-        table.add_column("ID", style="dim", width=10)
+        table.add_column("ID", style="dim")
         table.add_column("Email", style="bold")
         table.add_column("Username")
         table.add_column("Role")
@@ -70,7 +70,7 @@ def list_members(as_json: bool):
             }.get(str(role).lower(), str(role))
 
             table.add_row(
-                str(member.get("id", ""))[:10],
+                str(member.get("id", "")),
                 member.get("email", ""),
                 member.get("username", ""),
                 role_style,

@@ -3,6 +3,7 @@
 import click
 from rich.console import Console
 
+from . import __version__
 from .client import HumanboundClient
 from .config import get_base_url
 
@@ -35,6 +36,7 @@ def get_client() -> HumanboundClient:
 
 
 @click.group()
+@click.version_option(version=__version__, prog_name="hb")
 @click.option(
     "--base-url",
     envvar="HUMANBOUND_BASE_URL",
@@ -149,12 +151,24 @@ def switch_org(org_id: str):
 @cli.command("status")
 @click.argument("experiment_id", required=False)
 @click.option("--watch", "-w", is_flag=True, help="Watch status until completion")
+@click.option("--all", "show_all", is_flag=True, help="Show all project experiments (polls every 60s)")
 @click.pass_context
-def status_alias(ctx, experiment_id: str, watch: bool):
+def status_alias(ctx, experiment_id: str, watch: bool, show_all: bool):
     """Check experiment status (alias for 'experiments status').
 
     If no experiment_id is provided, shows the most recent experiment.
+    Use --all to see a dashboard of all project experiments.
     """
+    if show_all:
+        ctx.invoke(
+            experiments.experiment_status,
+            experiment_id=None,
+            watch=False,
+            interval=10,
+            show_all=True,
+        )
+        return
+
     client = HumanboundClient()
 
     if not experiment_id:
@@ -180,6 +194,7 @@ def status_alias(ctx, experiment_id: str, watch: bool):
         experiment_id=experiment_id,
         watch=watch,
         interval=10,
+        show_all=False,
     )
 
 
