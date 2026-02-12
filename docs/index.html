@@ -1199,22 +1199,10 @@ hb posture</code></pre>
                     <li><strong><code>$PROMPT</code></strong> -- The placeholder in the payload that gets replaced with each test prompt at runtime.</li>
                     <li><strong><code>streaming</code></strong> -- Set to <code>true</code> for WebSocket/SSE streaming endpoints.</li>
                 </ul>
-
-                <h3>Example: Simple API Key Auth</h3>
-                <div class="code-block-wrapper">
-                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
-                    <div class="code-block">
-                        <pre><code>{
-  <span class="string">"chat_completion"</span>: {
-    <span class="string">"endpoint"</span>: <span class="string">"https://api.example.com/chat"</span>,
-    <span class="string">"headers"</span>: { <span class="string">"x-api-key"</span>: <span class="string">"sk-xxx"</span> },
-    <span class="string">"payload"</span>: { <span class="string">"content"</span>: <span class="string">"$PROMPT"</span> }
-  }
-}</code></pre>
-                    </div>
+                <div class="alert alert-info">
+                    <strong>Note:</strong> At minimum, you must provide <code>chat_completion</code> and <code>thread_init</code>. <code>headers</code> and <code>payload</code> fields are required in each section but can be empty objects if not needed. Use them to pass API keys, content types, or other metadata as needed by your bot. If no <span class="string">"$PROMPT"</span> placeholder is found in the payload, Humanbound will append the prompt to the end of the payload by default assuming OpenAI-style input. The bot output should be in the response body of the <code>chat_completion</code> endpoint for Humanbound to capture it for analysis. The expected response format is a JSON object with any of <code>content | ans | answer | response | resp</code> field containing the bot's reply.
                 </div>
-
-                <h3>Example: With Thread Initialization</h3>
+                <h3>Basic Example:</h3>
                 <div class="code-block-wrapper">
                     <button class="copy-button" onclick="copyCode(this)">Copy</button>
                     <div class="code-block">
