@@ -3,7 +3,7 @@
 from . import (
     auth, orgs, projects, experiments, init, test, logs, posture,
     guardrails, docs, providers, findings, api_keys, members,
-    coverage, campaigns, upload_logs,
+    coverage, campaigns, upload_logs, sentinel,
 )
 
 __all__ = [
@@ -24,4 +24,5 @@ __all__ = [
     "coverage",
     "campaigns",
     "upload_logs",
+    "sentinel",
 ]

@@ -1081,6 +1081,70 @@ class HumanboundClient:
             data["lang"] = lang
         return self.post(f"projects/{project_id}/datasets/conversations", data=data, include_project=True)
 
+    # -------------------------------------------------------------------------
+    # Subscription Methods
+    # -------------------------------------------------------------------------
+
+    def get_subscription(self, subscription_id: str) -> Any:
+        """Get subscription details."""
+        return self.get(f"subscriptions/{subscription_id}", include_org=False)
+
+    # -------------------------------------------------------------------------
+    # Webhook Methods
+    # -------------------------------------------------------------------------
+
+    def create_webhook(self, url: str, secret: str, name: str = "Untitled Webhook", event_types: Optional[List[str]] = None) -> dict:
+        """Create a webhook for the current organisation."""
+        org_id = self._organisation_id
+        if not org_id:
+            raise ValidationError("No organisation selected.")
+        data = {"url": url, "secret": secret, "name": name, "event_types": event_types or [], "is_active": True}
+        return self.post(f"organisations/{org_id}/webhooks", data=data, include_org=False)
+
+    def delete_webhook(self, webhook_id: str) -> None:
+        """Delete a webhook."""
+        org_id = self._organisation_id
+        if not org_id:
+            raise ValidationError("No organisation selected.")
+        self.delete(f"organisations/{org_id}/webhooks/{webhook_id}", include_org=False)
+
+    def get_webhook(self, webhook_id: str) -> dict:
+        """Get a single webhook."""
+        org_id = self._organisation_id
+        if not org_id:
+            raise ValidationError("No organisation selected.")
+        return self.get(f"organisations/{org_id}/webhooks/{webhook_id}", include_org=False)
+
+    def list_webhook_deliveries(self, webhook_id: str, page: int = 1, size: int = 25) -> dict:
+        """List delivery log for a webhook."""
+        org_id = self._organisation_id
+        if not org_id:
+            raise ValidationError("No organisation selected.")
+        return self.get(f"organisations/{org_id}/webhooks/{webhook_id}/deliveries", params={"page": page, "size": size}, include_org=False)
+
+    def test_webhook(self, webhook_id: str) -> dict:
+        """Send a test ping to a webhook."""
+        org_id = self._organisation_id
+        if not org_id:
+            raise ValidationError("No organisation selected.")
+        return self.post(f"organisations/{org_id}/webhooks/{webhook_id}/test", include_org=False)
+
+    def replay_webhook(self, webhook_id: str, since: Optional[str] = None, until: Optional[str] = None, project_id: Optional[str] = None, event_type: Optional[str] = None) -> dict:
+        """Replay historical events through a webhook."""
+        org_id = self._organisation_id
+        if not org_id:
+            raise ValidationError("No organisation selected.")
+        data = {}
+        if since:
+            data["since"] = since
+        if until:
+            data["until"] = until
+        if project_id:
+            data["project_id"] = project_id
+        if event_type:
+            data["event_type"] = event_type
+        return self.post(f"organisations/{org_id}/webhooks/{webhook_id}/replay", data=data, include_org=False)
+
 
 # Import ValidationError to this module
 from .exceptions import ValidationError

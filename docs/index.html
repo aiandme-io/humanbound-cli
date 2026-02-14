@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Humanbound CLI Documentation | AI Agent Security Testing</title>
+    <title>Humanbound Documentation | AI Agent Security Testing Platform</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -628,6 +628,23 @@
             font-size: 0.85rem;
         }
 
+        /* Screenshots */
+        .screenshot {
+            max-width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .screenshot-caption {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: -1rem;
+            margin-bottom: 1.5rem;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             main {
@@ -730,8 +747,8 @@
         <div class="header-content">
             <div class="logo-section">
                 <img src="https://cdneunorth.blob.core.windows.net/data/humanbound_logo.png" alt="Humanbound Logo">
-                <h1>CLI Documentation</h1>
-                <span class="version-badge">v0.3.3</span>
+                <h1>Documentation</h1>
+                <span class="version-badge">v0.3.5</span>
             </div>
             <div class="hamburger" id="hamburger">
                 <span></span>
@@ -747,6 +764,8 @@
                 <ul>
                     <li><a href="#hero">Home</a></li>
                     <li><a href="#platform">Platform Overview</a></li>
+                    <li><a href="#llm-judge">LLM-as-a-Judge</a></li>
+                    <li><a href="#dashboard">Dashboard (App)</a></li>
                     <li><a href="#installation">Installation</a></li>
                     <li><a href="#quick-start">Quick Start</a></li>
                     <li><a href="#bot-config">Bot Configuration File</a></li>
@@ -762,19 +781,24 @@
                     <li><a href="#api-keys">API Keys</a></li>
                     <li><a href="#team-members">Team Members</a></li>
                     <li><a href="#guardrails">Guardrails Export</a></li>
+                    <li><a href="#firewall">Firewall</a></li>
                     <li><a href="#cicd">CI/CD Integration</a></li>
+                    <li><a href="#siem">SIEM Integration</a></li>
+                    <li><a href="#deployment">Deployment Options</a></li>
                     <li><a href="#authentication">Authentication &amp; Context</a></li>
+                    <li><a href="#mcp-server">MCP Server</a></li>
                     <li><a href="#command-reference">Command Reference</a></li>
+                    <li><a href="#community">Community</a></li>
                 </ul>
             </nav>
         </aside>
 
         <main>
             <section id="hero" class="hero">
-                <h1>Humanbound CLI</h1>
+                <h1>Humanbound</h1>
                 <p>Find vulnerabilities in your AI agents before attackers do.</p>
                 <p style="color: var(--text-secondary); font-size: 1rem; max-width: 640px; margin: 0.75rem auto 0;">
-                    Automated adversarial and behavioral testing for chatbots and AI agents. OWASP-aligned attack scenarios, posture scoring, and guardrails export &mdash; from your terminal to your CI/CD pipeline.
+                    AI agent security testing platform. Automated adversarial and behavioral testing, LLM-as-a-Judge evaluation, runtime firewall, OWASP-aligned attack scenarios, posture scoring, and guardrails export &mdash; from your terminal to your CI/CD pipeline.
                 </p>
 
                 <div class="hero-code">
@@ -836,6 +860,31 @@
                         <h4>CI/CD &amp; pytest</h4>
                         <p>Block insecure deployments with exit codes. Native pytest plugin with markers, fixtures, and baseline comparison.</p>
                     </a>
+                </div>
+
+                <h3>Platform Structure</h3>
+                <p>Humanbound follows a simple hierarchy:</p>
+                <ul>
+                    <li><strong>Organisation</strong> &mdash; The top-level management unit. Handles team collaboration, security settings, and billing.</li>
+                    <li><strong>Projects</strong> &mdash; Each AI model (chatbot, GenAI assistant) is managed under a project. Projects define business rules, safety checks, and testing workflows.</li>
+                    <li><strong>Experiments</strong> &mdash; Individual test executions that generate attack prompts, converse with your agent, and produce security verdicts.</li>
+                </ul>
+                <p>Example: A company with a customer support bot and an internal knowledge bot would create <strong>two projects</strong> under one organisation.</p>
+
+                <h3>Three Phases of AI Security</h3>
+                <div class="command-grid">
+                    <div class="command-card">
+                        <h4>1. Development: Testing &amp; Security</h4>
+                        <p>Before deployment, test your AI under real-world adversarial conditions. Automated stress tests, LLM-as-a-Judge evaluation, and iterative refinement based on security insights.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>2. Production: Real-Time Protection</h4>
+                        <p>Once live, the <a href="#firewall" style="color: var(--accent-orange);">Humanbound Firewall</a> monitors and filters user prompts in real time. Blocks risky or out-of-scope queries before they reach your bot.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>3. Post-Deployment: Auditing &amp; Monitoring</h4>
+                        <p>Continuous security checks via <a href="#upload-logs" style="color: var(--accent-orange);">log auditing</a>, <a href="#siem" style="color: var(--accent-orange);">SIEM integration</a>, and <a href="#campaigns" style="color: var(--accent-orange);">ASCAM campaigns</a>. Catch regressions and drift before users notice.</p>
+                    </div>
                 </div>
 
                 <h3>How it Works</h3>
@@ -946,6 +995,186 @@
                         <pre><code>hb init -n "My Bot" -e ./bot-config.json    # Create project
 hb test                                      # Run tests (uses saved config)</code></pre>
                     </div>
+                </div>
+            </section>
+
+            <section id="llm-judge">
+                <h2>LLM-as-a-Judge</h2>
+                <p>At the core of every Humanbound security test is a <strong>judge</strong> &mdash; an LLM that evaluates your AI agent's responses against security criteria. The judge is separate from the agent under test, using a different model and provider to ensure independent evaluation.</p>
+
+                <h3>How It Works</h3>
+                <p>When you run <code>hb test</code>, Humanbound generates adversarial prompts and sends them to your bot. Each response is then evaluated by the judge LLM, which produces a structured verdict:</p>
+
+                <div class="how-it-works">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h4>Generate</h4>
+                        <p>Attack prompts are crafted based on test category and your bot's scope</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h4>Converse</h4>
+                        <p>Prompts are sent to your bot via the configured endpoint</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h4>Judge</h4>
+                        <p>An independent LLM evaluates the bot's response for security violations</p>
+                    </div>
+                </div>
+
+                <h3>Evaluation Methods</h3>
+                <div class="command-grid">
+                    <div class="command-card">
+                        <h4>Categorical Labeling</h4>
+                        <p>Pass/Fail verdict with confidence score (0&ndash;100). The primary method for adversarial tests. Each log gets a binary result and an explanation.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>Direct Scoring</h4>
+                        <p>Numeric score (1&ndash;5) on specific quality dimensions. Used for behavioral tests to measure response quality, consistency, and helpfulness.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>Pairwise Comparison</h4>
+                        <p>Compares two responses to determine which is more secure or appropriate. Used internally during ASCAM analysis for strategy ranking.</p>
+                    </div>
+                </div>
+
+                <h3>Evaluation Factors</h3>
+                <p>The judge considers multiple dimensions when evaluating a response:</p>
+                <ul>
+                    <li><strong>Scope Adherence</strong> &mdash; Does the response stay within the bot's defined scope and permitted intents?</li>
+                    <li><strong>Information Disclosure</strong> &mdash; Does the response leak system prompts, internal data, or sensitive information?</li>
+                    <li><strong>Instruction Following</strong> &mdash; Does the bot follow injected instructions from the attacker rather than its own system prompt?</li>
+                    <li><strong>Safety Boundaries</strong> &mdash; Does the response maintain appropriate safety guardrails and refuse harmful requests?</li>
+                </ul>
+
+                <h3>Few-Shot Learning (FSLF)</h3>
+                <p>The judge improves over time through the <strong>Few-Shot Learning Framework</strong>. Human-annotated examples (quality rank 1&ndash;2) and high-confidence auto-labeled examples (quality rank 3, &ge;85% confidence) are used to calibrate the judge for your specific bot. Up to 15 few-shot examples are included per judge call.</p>
+
+                <div class="alert alert-info">
+                    <strong>Enable FSLF:</strong> Set the <code>few_shot_framework_enabled</code> flag on your project via the platform dashboard or API. The framework auto-trains nightly at 02:00 UTC.
+                </div>
+
+                <h3>Choosing a Judge Provider</h3>
+                <p>Any configured model provider can serve as the judge. The judge model is separate from your bot &mdash; you're testing your bot, not the judge. Configure providers with:</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Add a provider to use as judge</span>
+hb providers add --name openai --api-key sk-...
+
+<span class="comment"># Set as default judge provider</span>
+hb providers update &lt;id&gt; --default
+
+<span class="comment"># Run test with specific provider</span>
+hb test --provider-id &lt;id&gt;</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="dashboard">
+                <h2>Dashboard (App)</h2>
+                <p>The Humanbound web dashboard provides a visual interface for managing projects, running experiments, and reviewing results. Everything you can do in the dashboard can also be done via the <a href="#installation" style="color: var(--accent-orange);">CLI</a> &mdash; the CLI is the recommended workflow for developers and CI/CD pipelines.</p>
+
+                <div class="alert alert-info">
+                    <strong>Prefer the CLI?</strong> Skip to <a href="#installation" style="color: var(--accent-orange);">Installation</a> to get started with <code>hb</code> commands instead. The CLI sections below cover every feature in detail.
+                </div>
+
+                <h3>Creating a Project</h3>
+                <p>Navigate to <strong>Projects &rarr; Create Project</strong> in the dashboard:</p>
+
+                <img src="images/create_project.png" alt="Create Project in Dashboard" class="screenshot">
+                <p class="screenshot-caption">The project creation form in the Humanbound dashboard.</p>
+
+                <p>Define your AI application by answering three key questions in plain language:</p>
+                <ol>
+                    <li><strong>Business Scope</strong> &mdash; What is the AI designed to do?</li>
+                    <li><strong>Allowed Actions</strong> &mdash; What tasks should it handle?</li>
+                    <li><strong>Restricted Actions</strong> &mdash; What behaviors must be blocked?</li>
+                </ol>
+
+                <p><strong>Example:</strong> For a banking AI assistant:</p>
+                <ul>
+                    <li><strong>Allowed</strong> &mdash; Answer account balance queries, explain fees.</li>
+                    <li><strong>Restricted</strong> &mdash; Reject requests for confidential financial transactions, internal policies.</li>
+                </ul>
+
+                <p>Click <strong>Analyze</strong> &mdash; Humanbound summarizes your inputs into structured security rules. You can edit or re-run the analysis, then click <strong>Save</strong>.</p>
+
+                <div class="alert alert-success">
+                    <strong>CLI equivalent:</strong> <code>hb init -n "My Bot" --endpoint ./bot-config.json</code> &mdash; see <a href="#quick-start" style="color: var(--accent-orange);">Quick Start</a>.
+                </div>
+
+                <h3>Running an Experiment</h3>
+                <p>Go to the <strong>Experiments</strong> page and click <strong>Create Experiment</strong>:</p>
+
+                <img src="images/create_experiment_btn.png" alt="Create Experiment Button" class="screenshot">
+                <p class="screenshot-caption">Create a new experiment from the dashboard.</p>
+
+                <ol>
+                    <li>Fill in experiment details (name, description).</li>
+                    <li>Select the <strong>model provider</strong> for LLM-as-a-Judge evaluations.</li>
+                    <li>Configure the <strong>GenAI assistant integration</strong> (endpoint).</li>
+                    <li>Click <strong>Create</strong> to launch.</li>
+                </ol>
+
+                <h4>Experiment Pipeline</h4>
+                <p>Once started, the experiment runs automatically through three stages:</p>
+
+                <img src="images/adversarial_testing_process.png" alt="Adversarial Testing Pipeline" class="screenshot">
+                <p class="screenshot-caption">The Humanbound experiment pipeline: generate &rarr; test &rarr; evaluate.</p>
+
+                <div class="command-grid">
+                    <div class="command-card">
+                        <h4>1. Adversarial Data Generation</h4>
+                        <p>Humanbound auto-generates adversarial prompts based on your project scope. Simulates real-world edge cases and unexpected user interactions.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>2. AI Assistant Testing</h4>
+                        <p>Each prompt is sent to your bot. Responses are evaluated against expected behavior by the LLM-as-a-Judge with pass/fail verdicts.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>3. Results &amp; Insights</h4>
+                        <p>Humanbound compiles findings, detailed logs for auditing, and recommendations for improving AI robustness.</p>
+                    </div>
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>CLI equivalent:</strong> <code>hb test --wait</code> &mdash; see <a href="#test-reference" style="color: var(--accent-orange);">Test Command Reference</a>.
+                </div>
+
+                <h3>Viewing Results</h3>
+                <p>After completion, view the experiment overview in the dashboard:</p>
+
+                <img src="images/experiment_overview.png" alt="Experiment Overview" class="screenshot">
+                <p class="screenshot-caption">Experiment results showing pass/fail breakdown and findings.</p>
+
+                <p>Each log entry shows the conversation between the attacker prompt and your bot's response, along with the judge's verdict:</p>
+
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1.5rem 0;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <img src="images/log_rec_pass.png" alt="Passing Log Entry" class="screenshot" style="margin-bottom: 0.5rem;">
+                        <p class="screenshot-caption">A passing log entry &mdash; bot correctly refused the attack.</p>
+                    </div>
+                    <div style="flex: 1; min-width: 280px;">
+                        <img src="images/log_rec_fail.png" alt="Failing Log Entry" class="screenshot" style="margin-bottom: 0.5rem;">
+                        <p class="screenshot-caption">A failing log entry &mdash; bot was exploited by the attack.</p>
+                    </div>
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>CLI equivalent:</strong> <code>hb logs</code> or <code>hb logs --format html -o report.html</code> &mdash; see <a href="#experiments" style="color: var(--accent-orange);">Experiments</a>.
+                </div>
+
+                <h3>Model Providers</h3>
+                <p>Configure LLM providers (used as judge models) via <strong>Settings &rarr; Model Providers</strong>:</p>
+
+                <img src="images/model_providers_page.png" alt="Model Providers Page" class="screenshot">
+                <p class="screenshot-caption">Managing model providers in the dashboard.</p>
+
+                <div class="alert alert-success">
+                    <strong>CLI equivalent:</strong> <code>hb providers list</code> / <code>hb providers add -i</code> &mdash; see <a href="#model-providers" style="color: var(--accent-orange);">Model Providers</a>.
                 </div>
             </section>
 
@@ -1798,14 +2027,51 @@ hb providers update &lt;id&gt; --default</code></pre>
                 </div>
 
                 <h3>Supported Providers</h3>
-                <ul>
-                    <li><strong>OpenAI</strong>: GPT-4, GPT-3.5, and other OpenAI models</li>
-                    <li><strong>Claude</strong>: Anthropic's Claude models</li>
-                    <li><strong>Azure OpenAI</strong>: Azure-hosted OpenAI models</li>
-                    <li><strong>Gemini</strong>: Google's Gemini models</li>
-                    <li><strong>Grok</strong>: xAI's Grok models</li>
-                    <li><strong>Custom</strong>: OpenAI-compatible endpoints (requires whitelisting)</li>
-                </ul>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Label</th>
+                            <th>Requirements</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Azure OpenAI</td>
+                            <td><code>azureopenai</code></td>
+                            <td>API key + endpoint URL</td>
+                        </tr>
+                        <tr>
+                            <td>OpenAI</td>
+                            <td><code>openai</code></td>
+                            <td>API key</td>
+                        </tr>
+                        <tr>
+                            <td>Anthropic Claude</td>
+                            <td><code>claude</code></td>
+                            <td>API key</td>
+                        </tr>
+                        <tr>
+                            <td>Google Gemini</td>
+                            <td><code>gemini</code></td>
+                            <td>API key</td>
+                        </tr>
+                        <tr>
+                            <td>Grok (xAI)</td>
+                            <td><code>grok</code></td>
+                            <td>API key</td>
+                        </tr>
+                        <tr>
+                            <td>Custom</td>
+                            <td><code>custom</code></td>
+                            <td>API key + whitelisted endpoint</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <strong>Custom providers:</strong> For self-hosted or OpenAI-compatible models, the endpoint must be whitelisted via the <code>CUSTOM_MODEL_PROVIDER_ENDPOINT</code> environment variable in your Humanbound deployment.
+                </div>
             </section>
 
             <section id="api-keys">
@@ -1971,6 +2237,94 @@ hb members remove &lt;id&gt; --force</code></pre>
                 <p>Guardrails are automatically learned from your testing campaigns using Few-Shot Learning Framework (FSLF). They include attack patterns, violation rules, and defense strategies.</p>
             </section>
 
+            <section id="firewall">
+                <h2>Firewall</h2>
+                <p>The Humanbound Firewall is an open-source, context-aware security layer that sits between your users and your AI agent. It uses an LLM-as-a-Judge approach to evaluate incoming messages in real time &mdash; blocking prompt injections, off-topic requests, and policy violations before they reach your bot.</p>
+
+                <h3>Installation</h3>
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code>pip install aiandme</code></pre>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Note:</strong> The Python package is currently published as <code>aiandme</code> (not yet renamed to <code>humanbound</code>). The package name will be updated in a future release.
+                </div>
+
+                <h3>Python Integration</h3>
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="keyword">from</span> aiandme <span class="keyword">import</span> Firewall
+<span class="keyword">from</span> aiandme <span class="keyword">import</span> AIANDME_Firewall_CannotDecide, AIANDME_Firewall_NotAuthorised
+
+firewall = Firewall(
+    api_key=<span class="string">"your-azure-openai-key"</span>,
+    azure_endpoint=<span class="string">"https://your-resource.openai.azure.com"</span>,
+    scope=<span class="string">"You are a customer support bot for Acme Corp..."</span>,
+    permitted_intents=[<span class="string">"order_status"</span>, <span class="string">"returns"</span>, <span class="string">"product_info"</span>],
+    restricted_intents=[<span class="string">"competitor_comparison"</span>, <span class="string">"internal_pricing"</span>]
+)
+
+<span class="keyword">try</span>:
+    result = firewall.filter(user_input)
+    <span class="comment"># result.verdict: "Pass" | "Off-Topic" | "Violation" | "Restriction"</span>
+    <span class="comment"># result.reasoning: explanation of the verdict</span>
+    <span class="keyword">if</span> result.verdict == <span class="string">"Pass"</span>:
+        response = your_bot.chat(user_input)
+    <span class="keyword">else</span>:
+        response = result.reasoning
+<span class="keyword">except</span> AIANDME_Firewall_NotAuthorised:
+    response = <span class="string">"Your request was blocked by the security firewall."</span>
+<span class="keyword">except</span> AIANDME_Firewall_CannotDecide:
+    response = <span class="string">"Unable to process your request. Please try again."</span></code></pre>
+                    </div>
+                </div>
+
+                <h3>Firewall Verdicts</h3>
+                <div class="command-grid">
+                    <div class="command-card">
+                        <h4>Pass</h4>
+                        <p>Input is safe and within scope. Forward to your bot.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>Off-Topic</h4>
+                        <p>Input is outside the bot's defined scope. Reject with explanation.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>Violation</h4>
+                        <p>Input contains prompt injection, jailbreak attempt, or security threat.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>Restriction</h4>
+                        <p>Input touches a restricted intent (e.g., competitor comparison).</p>
+                    </div>
+                </div>
+
+                <h3>Adaptive Context Defense (ACD)</h3>
+                <p>The firewall auto-learns from your Humanbound test results. When FSLF identifies adversarial FAIL examples, those patterns are incorporated into the firewall's defense model &mdash; creating a feedback loop between testing and runtime protection.</p>
+
+                <h3>Guardrails &rarr; Firewall Pipeline</h3>
+                <p>Export learned guardrails and feed them into your firewall configuration:</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Export guardrails from test findings</span>
+hb guardrails -o guardrails.json
+
+<span class="comment"># Use in your firewall configuration</span>
+hb guardrails --vendor openai -o openai-rules.json</code></pre>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Open Source:</strong> The Humanbound Firewall is Apache-2.0 licensed. Contributions welcome at <a href="https://github.com/Humanbound/firewall" style="color: var(--accent-orange);" target="_blank">github.com/Humanbound/firewall</a>.
+                </div>
+            </section>
+
             <section id="cicd">
                 <h2>CI/CD Integration</h2>
                 <p>Integrate Humanbound security testing into your continuous integration and deployment pipelines. When the project has a default integration configured (via <code>hb init --endpoint</code>), CI/CD pipelines only need <code>hb test</code> with no endpoint flags.</p>
@@ -2063,6 +2417,269 @@ security-test:
                 </div>
             </section>
 
+            <section id="siem">
+                <h2>SIEM Integration</h2>
+                <p>Humanbound delivers security events in real time to your SOC tooling. Every finding, posture change, drift detection, and ASCAM phase transition is emitted as a structured, HMAC-signed webhook event that any SIEM, ticketing system, or automation platform can consume.</p>
+
+                <h3>Webhook Architecture</h3>
+                <p>Webhooks are configured at the organisation level. Each webhook specifies a delivery URL, a shared signing secret, and optional filters by event type or project. When a security event occurs, Humanbound:</p>
+
+                <ol>
+                    <li>Persists the event to an immutable audit log (<code>webhookevents</code> table)</li>
+                    <li>Dispatches to all matching webhooks in a background thread</li>
+                    <li>Signs the payload with HMAC-SHA256 (<code>X-Humanbound-Signature: sha256=...</code>)</li>
+                    <li>Retries up to 3 times with exponential backoff on failure</li>
+                </ol>
+
+                <h4>Event Types</h4>
+                <p>The platform emits 8 event types:</p>
+
+                <div class="command-grid">
+                    <div class="command-card">
+                        <h4>finding.created</h4>
+                        <p>New security vulnerability discovered. Severity varies by finding.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>finding.regressed</h4>
+                        <p>Previously fixed finding has reappeared. Always high severity.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>posture.grade_changed</h4>
+                        <p>Security posture grade changed (e.g., B &rarr; D). High if degraded.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>drift.detected</h4>
+                        <p>Statistical behavioral drift detected in agent responses.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>campaign.completed</h4>
+                        <p>ASCAM campaign finished with before/after posture delta.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>ascam.phase_changed</h4>
+                        <p>ASCAM lifecycle transitioned (e.g., Hardening &rarr; Red Teaming).</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>ascam.paused</h4>
+                        <p>Continuous monitoring paused for a project. Medium severity.</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>ascam.resumed</h4>
+                        <p>Continuous monitoring resumed for a project.</p>
+                    </div>
+                </div>
+
+                <h4>Payload Structure</h4>
+                <p>Every event is delivered as a ticketing-friendly JSON envelope with top-level <code>severity</code>, <code>title</code>, and <code>description</code> fields &mdash; ready for SIEM rule mapping without parsing nested objects:</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code>{
+  <span class="string">"event_type"</span>: <span class="string">"finding.created"</span>,
+  <span class="string">"organisation_id"</span>: <span class="string">"uuid"</span>,
+  <span class="string">"project_id"</span>: <span class="string">"uuid"</span>,
+  <span class="string">"timestamp"</span>: 1707840000,
+  <span class="string">"severity"</span>: <span class="string">"critical"</span>,
+  <span class="string">"title"</span>: <span class="string">"New critical finding: Prompt Injection via System Override"</span>,
+  <span class="string">"description"</span>: <span class="string">"New critical finding: Prompt Injection via System Override [LLM01]"</span>,
+  <span class="string">"category"</span>: <span class="string">"prompt_injection"</span>,
+  <span class="string">"owasp_category"</span>: <span class="string">"LLM01"</span>,
+  <span class="string">"data"</span>: { <span class="comment">/* event-specific payload */</span> }
+}</code></pre>
+                    </div>
+                </div>
+
+                <h4>Signature Verification</h4>
+                <p>Verify the <code>X-Humanbound-Signature</code> header by computing HMAC-SHA256 over the raw request body using your webhook secret:</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="keyword">import</span> hmac, hashlib
+
+<span class="keyword">def</span> verify(body: bytes, secret: str, signature: str) -> bool:
+    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    received = signature.removeprefix(<span class="string">"sha256="</span>)
+    <span class="keyword">return</span> hmac.compare_digest(expected, received)</code></pre>
+                    </div>
+                </div>
+
+                <h3>Microsoft Sentinel</h3>
+                <p>The Humanbound Sentinel Connector deploys a dedicated Azure Function into the customer's Azure subscription. Webhook events are pushed to a Log Analytics custom table (<code>AISecurityEvents_CL</code>) and surfaced through pre-built Sentinel content:</p>
+
+                <ul>
+                    <li><strong>CISO Dashboard</strong> &mdash; 5-tab workbook: Executive Summary, Findings, Drift &amp; Resilience, ASCAM Lifecycle, Incidents</li>
+                    <li><strong>4 Analytic Rules</strong> &mdash; Auto-create Sentinel incidents for critical findings, regressions, posture drops, and drift</li>
+                    <li><strong>6 Hunting Queries</strong> &mdash; OWASP risk analysis, regression patterns, posture trends, drift timeline, campaign ROI, remediation velocity</li>
+                    <li><strong>AI Estate Coverage</strong> &mdash; Dashboard tiles showing actively monitored, paused, and silent projects</li>
+                </ul>
+
+                <h4>End-to-End Deployment</h4>
+                <p>Deploy the full Sentinel integration with a single command. <code>hb sentinel deploy</code> handles everything: infrastructure, connector code, webhook creation, signing secret configuration, and connectivity verification.</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Deploy everything and auto-connect (one command, zero manual steps)</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel deploy --resource-group rg-humanbound</span>
+
+<span class="comment"># Deploy infrastructure only, skip webhook setup</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel deploy --rg rg-humanbound --no-connect</span>
+
+<span class="comment"># Export the script to review before running</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel deploy --rg rg-humanbound --export-only</span></code></pre>
+                    </div>
+                </div>
+
+                <p>The deploy command runs end-to-end: prerequisite check (az + func) &rarr; Azure login &rarr; resource group &rarr; Bicep deployment &rarr; function code publish &rarr; validation (4 automated checks) &rarr; webhook creation &rarr; signing secret configuration &rarr; test ping. After it completes, open the CISO Dashboard in Sentinel &mdash; events flow immediately.</p>
+
+                <div class="alert alert-info">
+                    <strong>Requirements:</strong> Azure CLI (<code>az</code>), Azure Functions Core Tools (<code>func</code>), and Humanbound login (<code>hb login</code>). Use <code>--no-connect</code> to skip the login requirement and deploy infrastructure only. Run <code>hb sentinel</code> with no subcommand for install instructions.
+                </div>
+
+                <h4>Connect &amp; Manage</h4>
+                <p>If you used <code>--no-connect</code> or need to reconnect to a different connector, use the individual commands:</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Register webhook pointing to your connector (only needed with --no-connect)</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel connect --url https://func-hb-connector-xxx.azurewebsites.net/api/ingest</span>
+
+<span class="comment"># Verify connectivity</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel test</span>
+
+<span class="comment"># Check connector health and recent deliveries</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel status</span>
+
+<span class="comment"># Backfill historical events</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel sync --since 2025-01-01</span>
+
+<span class="comment"># Remove the webhook</span>
+<span class="prompt">$</span> <span class="cmd">hb sentinel disconnect</span></code></pre>
+                    </div>
+                </div>
+
+                <h4>Data Sovereignty</h4>
+                <p>The connector runs in <strong>your</strong> Azure subscription. Event data never passes through Humanbound infrastructure &mdash; it flows directly from the webhook to your Log Analytics workspace via the Logs Ingestion API with managed identity authentication.</p>
+
+                <h3>Other SIEMs</h3>
+                <p>Webhook events can be routed to any SIEM or automation platform that accepts HTTPS webhooks:</p>
+
+                <ul>
+                    <li><strong>Splunk</strong> &mdash; Use an HTTP Event Collector (HEC) endpoint as the webhook URL</li>
+                    <li><strong>Google Chronicle</strong> &mdash; Route via a Cloud Function or direct ingestion API</li>
+                    <li><strong>Jira / ServiceNow</strong> &mdash; Use automation rules to create tickets from webhook payloads</li>
+                    <li><strong>Slack / Teams</strong> &mdash; Forward high-severity events to security channels via incoming webhooks</li>
+                    <li><strong>Custom</strong> &mdash; Any HTTPS endpoint that returns 2xx. Humanbound retries 3 times with exponential backoff.</li>
+                </ul>
+
+                <div class="alert alert-warning">
+                    <strong>Limit:</strong> 10 webhooks per organisation. Each webhook can filter by event type and/or project to control delivery volume.
+                </div>
+            </section>
+
+            <section id="deployment">
+                <h2>Deployment Options</h2>
+                <p>Humanbound supports multiple deployment models to meet your organisation's security and compliance requirements.</p>
+
+                <h3>SaaS (Cloud)</h3>
+                <p>The default deployment. Humanbound hosts and manages everything.</p>
+                <ul>
+                    <li><strong>No infrastructure to manage</strong> &mdash; get started immediately</li>
+                    <li>Automatic updates and scaling</li>
+                    <li>Data stored in EU (North Europe region)</li>
+                    <li>SOC 2 compliant infrastructure</li>
+                </ul>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code>pip install humanbound-cli
+hb login</code></pre>
+                    </div>
+                </div>
+
+                <h3>On-Premises</h3>
+                <p>Deploy Humanbound within your own infrastructure for full data sovereignty.</p>
+                <ul>
+                    <li><strong>All data stays in your network</strong></li>
+                    <li>Azure Functions runtime (self-hosted)</li>
+                    <li>PostgreSQL (Cosmos DB compatible) database</li>
+                    <li>Requires your own LLM provider credentials</li>
+                </ul>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Point CLI at your on-prem instance</span>
+hb --base-url https://my-humanbound-server.internal/api login</code></pre>
+                    </div>
+                </div>
+
+                <p>Contact <a href="mailto:support@humanbound.ai" style="color: var(--accent-orange);">support@humanbound.ai</a> for on-prem deployment packages.</p>
+
+                <h3>Private Cloud</h3>
+                <p>Dedicated Humanbound instance in your cloud tenant.</p>
+                <ul>
+                    <li><strong>Isolated infrastructure</strong> within your Azure/AWS subscription</li>
+                    <li>Managed by Humanbound team</li>
+                    <li>Custom domain and branding</li>
+                    <li>Same feature set as SaaS</li>
+                </ul>
+
+                <h3>Feature Comparison</h3>
+                <table class="config-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>SaaS</th>
+                            <th>On-Prem</th>
+                            <th>Private Cloud</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Managed infrastructure</td>
+                            <td>Yes</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>Data sovereignty</td>
+                            <td>EU region</td>
+                            <td>Your network</td>
+                            <td>Your tenant</td>
+                        </tr>
+                        <tr>
+                            <td>Automatic updates</td>
+                            <td>Yes</td>
+                            <td>Manual</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>Custom domain</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>SIEM integration</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>CLI support</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
             <section id="authentication">
                 <h2>Authentication &amp; Context</h2>
                 <p>Manage authentication, organisation context, and access to documentation.</p>
@@ -2127,6 +2744,70 @@ hb docs
 <span class="comment"># Open specific topic</span>
 hb docs quickstart</code></pre>
                     </div>
+                </div>
+            </section>
+
+            <section id="mcp-server">
+                <h2>MCP Server</h2>
+                <p>Humanbound exposes an <strong>MCP (Model Context Protocol) server</strong> that lets AI coding assistants (Claude Code, Cursor, Windsurf, GitHub Copilot) query your security testing data directly. Ask natural-language questions about posture, findings, coverage, and experiments without leaving your IDE.</p>
+
+                <h3>Setup</h3>
+                <p>The MCP server is built into the Humanbound CLI. Configure it in your IDE's MCP settings:</p>
+
+                <div class="code-block-wrapper">
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                    <div class="code-block">
+                        <pre><code>{
+  <span class="string">"mcpServers"</span>: {
+    <span class="string">"humanbound"</span>: {
+      <span class="string">"command"</span>: <span class="string">"hb"</span>,
+      <span class="string">"args"</span>: [<span class="string">"mcp"</span>]
+    }
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <h3>Available Tools</h3>
+                <div class="command-grid">
+                    <div class="command-card">
+                        <h4>get_posture</h4>
+                        <p>Current security posture score, grade, and trend data for the active project</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>get_findings</h4>
+                        <p>List findings with optional status/severity filters</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>get_coverage</h4>
+                        <p>Test coverage summary and untested categories</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>get_experiments</h4>
+                        <p>Recent experiments with status, results, and configuration</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>get_logs</h4>
+                        <p>Conversation logs and verdicts from a specific experiment</p>
+                    </div>
+                    <div class="command-card">
+                        <h4>get_campaigns</h4>
+                        <p>Current ASCAM campaign status and phase information</p>
+                    </div>
+                </div>
+
+                <h3>Example Queries</h3>
+                <p>Once configured, you can ask your AI assistant questions like:</p>
+                <ul>
+                    <li><em>"What's my current security posture score?"</em></li>
+                    <li><em>"Show me all critical findings that are still open"</em></li>
+                    <li><em>"What attack categories haven't been tested yet?"</em></li>
+                    <li><em>"Did the last experiment find any prompt injection vulnerabilities?"</em></li>
+                    <li><em>"What ASCAM phase is my project currently in?"</em></li>
+                </ul>
+
+                <div class="alert alert-info">
+                    <strong>Requirements:</strong> Humanbound CLI must be installed and authenticated (<code>hb login</code>). The MCP server uses your existing CLI credentials and active project context.
                 </div>
             </section>
 
@@ -2299,6 +2980,44 @@ hb docs quickstart</code></pre>
                 </div>
 
                 <div class="command-group">
+                    <h3>SIEM / Sentinel</h3>
+                    <div class="command-grid">
+                        <div class="command-card">
+                            <h4>hb sentinel</h4>
+                            <p>Show Sentinel setup instructions and available commands</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel deploy --rg &lt;name&gt;</h4>
+                            <p>Deploy infrastructure, create webhook, set signing secret, and verify &mdash; fully end-to-end</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel deploy --rg &lt;name&gt; --no-connect</h4>
+                            <p>Deploy infrastructure only, skip webhook setup</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel connect --url &lt;url&gt;</h4>
+                            <p>Register webhook manually (only needed with --no-connect)</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel test</h4>
+                            <p>Send a test event to verify connectivity</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel status</h4>
+                            <p>Check connector health and recent deliveries</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel sync</h4>
+                            <p>Replay historical events to Sentinel for backfill</p>
+                        </div>
+                        <div class="command-card">
+                            <h4>hb sentinel disconnect</h4>
+                            <p>Remove the Sentinel webhook and local configuration</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="command-group">
                     <h3>Configuration</h3>
                     <div class="command-grid">
                         <div class="command-card">
@@ -2366,15 +3085,44 @@ hb docs quickstart</code></pre>
                     </div>
                 </div>
             </section>
+
+            <section id="community">
+                <h2>Community</h2>
+                <p>Join the Humanbound community to get help, share feedback, and stay up to date with the latest features.</p>
+
+                <div class="feature-grid">
+                    <a href="https://discord.gg/gQyXjVBF" target="_blank" class="feature-card">
+                        <span class="card-icon">&#x1F4AC;</span>
+                        <h4>Discord</h4>
+                        <p>Join the community server for support, feature discussions, and early access announcements.</p>
+                    </a>
+                    <a href="https://github.com/Humanbound" target="_blank" class="feature-card">
+                        <span class="card-icon">&#x1F4BB;</span>
+                        <h4>GitHub</h4>
+                        <p>Open-source projects, CLI issues, and the Humanbound Firewall repository.</p>
+                    </a>
+                    <a href="https://github.com/Humanbound/humanbound-cli/issues" target="_blank" class="feature-card">
+                        <span class="card-icon">&#x1F41B;</span>
+                        <h4>Report Issues</h4>
+                        <p>Found a bug or have a feature request? Open an issue on GitHub.</p>
+                    </a>
+                    <a href="mailto:support@humanbound.ai" class="feature-card">
+                        <span class="card-icon">&#x2709;</span>
+                        <h4>Support</h4>
+                        <p>Contact the team directly at support@humanbound.ai for enterprise inquiries.</p>
+                    </a>
+                </div>
+            </section>
         </main>
     </div>
 
     <footer>
-        <p>Copyright 2025 Humanbound. Apache-2.0 License.</p>
+        <p>Copyright 2025 Humanbound. All rights reserved.</p>
         <p>
-            <a href="https://github.com/humanbound" target="_blank">GitHub</a>
-            <a href="https://docs.humanbound.ai" target="_blank">Documentation</a>
+            <a href="https://github.com/Humanbound" target="_blank">GitHub</a>
+            <a href="https://discord.gg/gQyXjVBF" target="_blank">Discord</a>
             <a href="https://github.com/Humanbound/humanbound-cli/issues" target="_blank">Report Issues</a>
+            <a href="mailto:support@humanbound.ai">Support</a>
         </p>
     </footer>
 
