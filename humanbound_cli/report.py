@@ -49,6 +49,8 @@ def generate_html_report(experiment: dict, logs: list[dict]) -> str:
         _header_section(name, status, test_category, testing_level, lang, created_at, generated_at),
     ]
 
+    is_project_report = name == "Project Logs"
+
     if is_finished and total > 0:
         html_parts.append(_health_overview(tpi, reliability, fail_impact))
         html_parts.append(_metric_cards(pass_rate, fail_rate, total, passed, failed, exec_t, pass_rating))
@@ -56,7 +58,7 @@ def generate_html_report(experiment: dict, logs: list[dict]) -> str:
             html_parts.append(_threats_table(tests_evals, tests_data))
         if insights:
             html_parts.append(_insights_section(insights))
-    elif not is_finished:
+    elif not is_finished and not is_project_report:
         html_parts.append(_status_banner(status))
 
     html_parts.append(_logs_section(logs))
@@ -248,16 +250,38 @@ tbody tr:hover{{background:rgba(255,255,255,.02)}}
   cursor:pointer;font-size:.78rem;font-family:var(--font-sans);
 }}
 .filter-btn:hover,.filter-btn.active{{border-color:var(--accent);color:var(--accent)}}
-.log-detail{{
-  padding:.75rem;margin-top:.5rem;background:var(--bg-surface);
-  border:1px solid var(--border);border-radius:6px;
+/* Expandable detail row */
+.log-row{{cursor:pointer;transition:background .15s}}
+.log-row:hover{{background:rgba(253,149,6,.04)}}
+.log-row.expanded{{background:rgba(253,149,6,.06)}}
+.log-row td:first-child{{position:relative;padding-left:1.5rem}}
+.log-row td:first-child::before{{
+  content:"▸";position:absolute;left:.4rem;top:.7rem;
+  font-size:.7rem;color:var(--text-dim);transition:transform .15s;
 }}
-.log-detail .field-label{{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:.15rem}}
-.log-detail .field-value{{font-size:.82rem;margin-bottom:.75rem;white-space:pre-wrap;word-break:break-word}}
-.log-detail .field-value:last-child{{margin-bottom:0}}
-details>summary{{cursor:pointer;list-style:none}}
-details>summary::-webkit-details-marker{{display:none}}
-.prompt-preview{{max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.log-row.expanded td:first-child::before{{transform:rotate(90deg)}}
+.detail-row{{display:none}}
+.detail-row.visible{{display:table-row}}
+.detail-row td{{padding:0 !important;border-bottom:2px solid var(--accent)}}
+.detail-panel{{
+  display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;
+  padding:1.25rem;background:var(--bg-surface);
+}}
+.detail-panel-full{{grid-template-columns:1fr}}
+.detail-section-title{{
+  font-size:.7rem;font-weight:600;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;
+}}
+.detail-explanation{{
+  font-size:.84rem;color:var(--text);line-height:1.7;word-break:break-word;
+}}
+.detail-conversation{{
+  font-size:.82rem;color:var(--text-secondary);line-height:1.6;
+  max-height:400px;overflow-y:auto;word-break:break-word;
+  padding-right:.5rem;
+}}
+.detail-fb{{margin-top:.75rem}}
+.detail-exec{{font-size:.78rem;color:var(--text-dim);margin-top:.5rem}}
 
 /* Verdict cell */
 .verdict-cell{{display:flex;flex-direction:column;gap:.2rem}}
@@ -284,6 +308,19 @@ details>summary::-webkit-details-marker{{display:none}}
 .sev-tag.tag-high{{background:rgba(255,123,114,.12);color:#ff7b72}}
 .sev-tag.tag-medium{{background:rgba(240,192,0,.12);color:var(--warning)}}
 .sev-tag.tag-low{{background:rgba(63,185,80,.1);color:var(--success)}}
+
+/* Feedback */
+.feedback-row{{display:flex;align-items:center;gap:.4rem;margin-top:.35rem;flex-wrap:wrap}}
+.feedback-tag{{
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.15rem .5rem;border-radius:5px;
+  font-size:.68rem;font-weight:600;letter-spacing:.02em;
+}}
+.feedback-tag.fb-confirm{{background:rgba(88,166,255,.12);color:var(--good);border:1px solid rgba(88,166,255,.25)}}
+.feedback-tag.fb-pass{{background:rgba(63,185,80,.12);color:var(--success);border:1px solid rgba(63,185,80,.25)}}
+.feedback-tag.fb-fail{{background:rgba(248,81,73,.12);color:var(--error);border:1px solid rgba(248,81,73,.25)}}
+.feedback-tag.fb-none{{background:rgba(139,148,158,.08);color:var(--text-dim);border:1px solid rgba(139,148,158,.2)}}
+.feedback-comment{{font-size:.7rem;color:var(--text-dim);font-style:italic;word-break:break-word}}
 
 /* Threat list */
 .threat-list{{display:flex;flex-wrap:wrap;gap:.5rem}}
@@ -548,15 +585,38 @@ def _insights_section(insights):
 </div>'''
 
 
+def _has_feedback(log: dict) -> bool:
+    """Check if a log has human feedback."""
+    fb = log.get("feedback") or {}
+    return bool(isinstance(fb, dict) and fb.get("label"))
+
+
+def _feedback_badge(label: str) -> tuple[str, str]:
+    """Return (display_text, css_class) for a feedback label."""
+    mapping = {
+        "confirm": ("Confirmed", "fb-confirm"),
+        "pass": ("Override: Pass", "fb-pass"),
+        "fail_low_severity": ("Override: Fail (Low)", "fb-fail"),
+        "fail_medium_severity": ("Override: Fail (Med)", "fb-fail"),
+        "fail_high_severity": ("Override: Fail (High)", "fb-fail"),
+    }
+    return mapping.get(label, (_esc(label), "fb-confirm"))
+
+
 def _logs_section(logs):
     if not logs:
         return '''<div class="section">
   <div class="section-title">Logs</div>
-  <div class="empty-state">No logs available for this experiment.</div>
+  <div class="empty-state">No logs available.</div>
 </div>'''
 
     total_pass = sum(1 for l in logs if l.get("result") == "pass")
     total_fail = sum(1 for l in logs if l.get("result") == "fail")
+
+    # Detect project-level report (logs enriched with experiment_name)
+    is_multi_experiment = any(l.get("experiment_name") for l in logs)
+
+    col_count = 5 if is_multi_experiment else 3
 
     rows = []
     for i, log in enumerate(logs):
@@ -568,12 +628,9 @@ def _logs_section(logs):
         conversation = log.get("conversation") or []
         exec_time = log.get("exec_t", "")
         confidence = log.get("confidence", "")
-        log_id = log.get("id", "")
-
-        result_class = "badge-success" if result == "pass" else "badge-error"
         category = fail_cat or gen_cat or ""
 
-        # Consolidated verdict cell
+        # Verdict cell
         pill_cls = "pill-pass" if result == "pass" else "pill-fail"
         dot_cls = "dot-pass" if result == "pass" else "dot-fail"
 
@@ -609,24 +666,23 @@ def _logs_section(logs):
         meta_html = f'<div class="verdict-meta">{"".join(meta_parts)}</div>' if meta_parts else ''
 
         verdict_html = f'''<div class="verdict-cell">
-  <div class="verdict-pill {pill_cls}">
-    <span class="verdict-dot {dot_cls}"></span>
-    <span class="verdict-label">{_esc(result)}</span>
-  </div>
+  <div class="verdict-pill {pill_cls}"><span class="verdict-dot {dot_cls}"></span><span class="verdict-label">{_esc(result)}</span></div>
   {meta_html}
 </div>'''
 
-        # Build detail fields from conversation
-        detail_parts = []
-        if conversation:
-            conv_text = _format_conversation(conversation)
-            detail_parts.append(f'<div class="field-label">Conversation</div><div class="field-value">{conv_text}</div>')
-        if exec_time:
-            detail_parts.append(f'<div class="field-label">Execution Time</div><div class="field-value">{_esc(str(exec_time))}s</div>')
+        # Feedback badge (compact, for main row)
+        feedback = log.get("feedback") or {}
+        fb_label = feedback.get("label", "") if isinstance(feedback, dict) else ""
+        fb_comments = (feedback.get("comments", "") or "") if isinstance(feedback, dict) else ""
+        has_feedback = bool(fb_label)
 
-        detail_html = f'<div class="log-detail">{"".join(detail_parts)}</div>' if detail_parts else ''
+        if has_feedback:
+            fb_display, fb_cls = _feedback_badge(fb_label)
+            feedback_badge = f'<span class="feedback-tag {fb_cls}">&#9998; {fb_display}</span>'
+        else:
+            feedback_badge = '<span class="feedback-tag fb-none">No Feedback</span>'
 
-        # Preview: first user message from conversation, or fallback to prompt
+        # Preview: first user message or prompt (one-liner for main row)
         preview = ""
         if conversation:
             for msg in (conversation if isinstance(conversation, list) else []):
@@ -640,27 +696,70 @@ def _logs_section(logs):
         if not preview:
             preview = (log.get("prompt", "") or "")[:80]
 
-        rows.append(f'''<tr data-result="{_esc(result)}">
-  <td>{verdict_html}</td>
-  <td style="font-size:.82rem;color:var(--text-secondary);max-width:300px">{_esc(explanation[:120])}{"…" if len(explanation) > 120 else ""}</td>
-  <td>
-    <details>
-      <summary class="prompt-preview">{_esc(preview)}{"…" if len(preview) >= 80 else ""}</summary>
-      {detail_html}
-    </details>
-  </td>
+        fb_data = "none"
+        if has_feedback:
+            fb_data = "confirmed" if fb_label == "confirm" else "overridden"
+
+        # --- Main row (compact, clickable) ---
+        exp_cols = ""
+        if is_multi_experiment:
+            exp_name = log.get("experiment_name", "") or ""
+            test_cat = log.get("test_category", "") or ""
+            tc_short = test_cat.split("/")[-1] if "/" in test_cat else test_cat
+            exp_cols = f'  <td style="font-size:.78rem">{_esc(exp_name[:30])}</td>\n  <td style="font-size:.78rem;color:var(--text-secondary)">{_esc(tc_short)}</td>\n'
+
+        rows.append(f'''<tr class="log-row" data-result="{_esc(result)}" data-feedback="{fb_data}" onclick="toggleDetail(this)">
+{exp_cols}  <td>{verdict_html}</td>
+  <td style="font-size:.8rem;color:var(--text-secondary);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_esc(preview)}{"…" if len(preview) >= 80 else ""}</td>
+  <td>{feedback_badge}</td>
 </tr>''')
+
+        # --- Detail row (full-width expandable panel) ---
+        # Left: explanation + feedback comments  |  Right: conversation
+        left_parts = []
+        if explanation:
+            left_parts.append(f'<div class="detail-section-title">Explanation</div><div class="detail-explanation">{_esc(explanation)}</div>')
+        if has_feedback and fb_comments:
+            left_parts.append(f'<div class="detail-fb"><div class="detail-section-title">Feedback</div><div style="font-size:.84rem;color:var(--text);word-break:break-word">{feedback_badge}<div style="margin-top:.35rem;color:var(--text-secondary);font-style:italic">{_esc(fb_comments)}</div></div></div>')
+        if exec_time:
+            left_parts.append(f'<div class="detail-exec">Exec time: {_esc(str(exec_time))}s</div>')
+        left_html = "".join(left_parts) if left_parts else '<div style="color:var(--text-dim)">No explanation available.</div>'
+
+        right_html = ""
+        if conversation:
+            conv_text = _format_conversation(conversation)
+            right_html = f'<div class="detail-section-title">Conversation</div><div class="detail-conversation">{conv_text}</div>'
+
+        if right_html:
+            panel_html = f'<div class="detail-panel"><div>{left_html}</div><div>{right_html}</div></div>'
+        else:
+            panel_html = f'<div class="detail-panel detail-panel-full"><div>{left_html}</div></div>'
+
+        rows.append(f'<tr class="detail-row" data-result="{_esc(result)}" data-feedback="{fb_data}"><td colspan="{col_count}">{panel_html}</td></tr>')
+
+    total_confirmed = sum(1 for l in logs if (l.get("feedback") or {}).get("label") == "confirm")
+    total_overridden = sum(1 for l in logs if _has_feedback(l)) - total_confirmed
+    total_reviewed = total_confirmed + total_overridden
+    total_unreviewed = len(logs) - total_reviewed
 
     return f'''<div class="section">
   <div class="section-title">Logs ({len(logs)} total — <span style="color:var(--success)">{total_pass} pass</span>, <span style="color:var(--error)">{total_fail} fail</span>)</div>
   <div class="log-filters">
-    <button class="filter-btn active" onclick="filterLogs('all')">All ({len(logs)})</button>
-    <button class="filter-btn" onclick="filterLogs('pass')">Pass ({total_pass})</button>
-    <button class="filter-btn" onclick="filterLogs('fail')">Fail ({total_fail})</button>
+    <span style="font-size:.7rem;color:var(--text-dim);margin-right:.25rem">Verdict:</span>
+    <button class="filter-btn active" onclick="filterLogs(this,'result','all')">All ({len(logs)})</button>
+    <button class="filter-btn" onclick="filterLogs(this,'result','pass')">Pass ({total_pass})</button>
+    <button class="filter-btn" onclick="filterLogs(this,'result','fail')">Fail ({total_fail})</button>
+    <span style="font-size:.7rem;color:var(--text-dim);margin:0 .25rem 0 .75rem">Feedback:</span>
+    <button class="filter-btn active" onclick="filterLogs(this,'feedback','all')">All</button>
+    <button class="filter-btn" onclick="filterLogs(this,'feedback','reviewed')">Reviewed ({total_reviewed})</button>
+    <button class="filter-btn" onclick="filterLogs(this,'feedback','confirmed')">Confirmed ({total_confirmed})</button>
+    <button class="filter-btn" onclick="filterLogs(this,'feedback','overridden')">Overridden ({total_overridden})</button>
+    <button class="filter-btn" onclick="filterLogs(this,'feedback','none')">No Feedback ({total_unreviewed})</button>
   </div>
+  <div style="font-size:.72rem;color:var(--text-dim);margin-bottom:.75rem">Click a row to expand explanation and conversation details.</div>
   <table id="logs-table">
     <thead>
-      <tr><th>Verdict</th><th>Explanation</th><th>Conversation</th></tr>
+      <tr>{"<th>Experiment</th><th>Category</th>" if is_multi_experiment else ""}<th>Verdict</th><th>Preview</th><th>Feedback</th></tr>
     </thead>
     <tbody>
       {''.join(rows)}
@@ -668,13 +767,38 @@ def _logs_section(logs):
   </table>
 </div>
 <script>
-function filterLogs(v){{
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  document.querySelectorAll('#logs-table tbody tr').forEach(r=>{{
-    r.style.display=(v==='all'||r.dataset.result===v)?'':'none';
-  }});
-}}
+(function(){{
+  var filters={{result:'all',feedback:'all'}};
+  window.toggleDetail=function(row){{
+    var detail=row.nextElementSibling;
+    if(detail&&detail.classList.contains('detail-row')){{
+      var show=!detail.classList.contains('visible');
+      detail.classList.toggle('visible',show);
+      row.classList.toggle('expanded',show);
+    }}
+  }};
+  window.filterLogs=function(btn,dim,val){{
+    filters[dim]=val;
+    btn.parentElement.querySelectorAll('.filter-btn').forEach(function(b){{
+      if(b.onclick&&b.onclick.toString().indexOf("'"+dim+"'")>-1)b.classList.remove('active');
+    }});
+    btn.classList.add('active');
+    document.querySelectorAll('#logs-table tbody tr').forEach(function(r){{
+      var showResult=filters.result==='all'||r.dataset.result===filters.result;
+      var fb=r.dataset.feedback,fv=filters.feedback;
+      var showFb=fv==='all'||fb===fv||(fv==='reviewed'&&fb!=='none');
+      if(r.classList.contains('detail-row')){{
+        if(!(showResult&&showFb))r.classList.remove('visible');
+      }}else{{
+        r.style.display=(showResult&&showFb)?'':'none';
+        if(!(showResult&&showFb)){{
+          var d=r.nextElementSibling;
+          if(d&&d.classList.contains('detail-row')){{d.classList.remove('visible');r.classList.remove('expanded');}}
+        }}
+      }}
+    }});
+  }};
+}})();
 </script>'''
 
 

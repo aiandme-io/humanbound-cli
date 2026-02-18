@@ -1375,6 +1375,13 @@ hb status --all
 <span class="comment"># View latest experiment logs</span>
 hb logs
 
+<span class="comment"># Project-wide logs (last N experiments, date range, category)</span>
+hb logs --last 5
+hb logs --last 3 --verdict fail
+hb logs --category owasp_multi_turn
+hb logs --days 7 --format json -o week.json
+hb logs --from 2026-01-01 --until 2026-02-01 --format html -o jan.html
+
 <span class="comment"># Export as JSON</span>
 hb logs --format json -o results.json
 
@@ -1653,7 +1660,14 @@ hb experiments logs &lt;id&gt; --result pass
 hb logs &lt;id&gt; --format html -o report.html
 
 <span class="comment"># Export as JSON</span>
-hb logs &lt;id&gt; --format json --all -o results.json</code></pre>
+hb logs &lt;id&gt; --format json --all -o results.json
+
+<span class="comment"># Project-wide logs with scope flags</span>
+hb logs --last 5                           <span class="comment"># Last 5 experiments</span>
+hb logs --last 3 --verdict fail            <span class="comment"># Failed logs from last 3</span>
+hb logs --category owasp_multi_turn        <span class="comment"># Filter by test category</span>
+hb logs --days 7 --format json -o week.json
+hb logs --from 2026-01-01 --until 2026-02-01 --format html -o jan.html</code></pre>
                     </div>
                 </div>
 
@@ -3031,7 +3045,7 @@ hb docs quickstart</code></pre>
                     <div class="command-grid">
                         <div class="command-card">
                             <h4>hb logs</h4>
-                            <p>View logs from latest experiment (table, json, or html report)</p>
+                            <p>View logs from latest experiment or project-wide with scope flags (--last, --category, --days, --from, --until)</p>
                         </div>
                         <div class="command-card">
                             <h4>hb posture</h4>

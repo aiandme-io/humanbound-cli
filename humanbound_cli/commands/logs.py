@@ -4,12 +4,11 @@ import click
 from rich.console import Console
 from rich.table import Table
 import json
-import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from ..client import HumanboundClient
 from ..exceptions import NotAuthenticatedError, APIError
-from ..config import LONG_TIMEOUT
 
 console = Console()
 console_err = Console(stderr=True)
@@ -43,17 +42,36 @@ console_err = Console(stderr=True)
 @click.option(
     "--all", "fetch_all", is_flag=True, help="Fetch all logs (for json format)"
 )
-def logs_command(experiment_id: str, output_format: str, output: str, verdict: str, page: int, size: int, fetch_all: bool):
-    """Get logs from an experiment.
+@click.option(
+    "--last", "last_n", type=int, help="Logs from last N experiments"
+)
+@click.option(
+    "--category", "test_category", help="Filter by test category (substring match)"
+)
+@click.option(
+    "--from", "from_date", help="Start date (ISO 8601, e.g. 2026-01-01)"
+)
+@click.option(
+    "--until", "until_date", help="End date (ISO 8601)"
+)
+@click.option(
+    "--days", type=int, help="Last N days (shortcut for --from)"
+)
+def logs_command(experiment_id, output_format, output, verdict, page, size, fetch_all, last_n, test_category, from_date, until_date, days):
+    """Get logs from an experiment or across a project.
 
-    If no experiment_id is provided, uses the most recent experiment.
+    If no experiment_id or scope flags are provided, uses the most recent experiment.
+    Use scope flags (--last, --category, --from, --until, --days) for project-wide logs.
 
     \b
     Examples:
-      hb logs                              # Show recent experiment logs
-      hb logs abc123 --format=json         # Export as JSON
-      hb logs abc123 --format=html -o report.html
-      hb logs abc123 --verdict=fail        # Show only failures
+      hb logs                                    # Latest experiment logs
+      hb logs abc123                             # Specific experiment
+      hb logs --last 5                           # Last 5 experiments
+      hb logs --last 3 --verdict fail            # Failed logs from last 3
+      hb logs --category owasp_multi_turn        # All multi-turn logs
+      hb logs --days 7 --format json -o week.json
+      hb logs --from 2026-01-01 --until 2026-02-01 --format html -o jan.html
     """
     client = HumanboundClient()
 
@@ -66,9 +84,38 @@ def logs_command(experiment_id: str, output_format: str, output: str, verdict: s
         console_err.print("Use 'hb projects use <id>' to select a project first.")
         raise SystemExit(1)
 
+    # Validation
+    scope_flags = any([last_n, test_category, from_date, until_date, days])
+    if experiment_id and scope_flags:
+        console_err.print("[red]Cannot combine experiment ID with scope flags.[/red]")
+        console_err.print("Use either an experiment ID OR scope flags (--last, --category, --from, --until, --days).")
+        raise SystemExit(1)
+    if days and from_date:
+        console_err.print("[red]Cannot combine --days with --from.[/red]")
+        raise SystemExit(1)
+
+    # --days → --from
+    if days:
+        from_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%dT00:00:00")
+
     try:
-        # Get experiment ID if not provided
-        if not experiment_id:
+        if scope_flags:
+            _project_level_logs(
+                client, output_format, output, verdict, page, size, fetch_all,
+                last_n, test_category, from_date, until_date,
+            )
+        elif experiment_id:
+            # Resolve partial experiment ID
+            experiment_id = _resolve_experiment_id(client, experiment_id)
+
+            if output_format == "html":
+                _export_html(client, experiment_id, output)
+            elif output_format == "json":
+                _export_json(client, experiment_id, output, verdict, fetch_all, page, size)
+            else:
+                _show_table(client, experiment_id, verdict, page, size)
+        else:
+            # No args → most recent experiment (existing behavior)
             response = client.list_experiments(page=1, size=1)
             exps = response.get("data", [])
             if not exps:
@@ -77,15 +124,12 @@ def logs_command(experiment_id: str, output_format: str, output: str, verdict: s
             experiment_id = exps[0].get("id")
             console_err.print(f"[dim]Using most recent experiment: {experiment_id}[/dim]")
 
-        # Resolve partial experiment ID
-        experiment_id = _resolve_experiment_id(client, experiment_id)
-
-        if output_format == "html":
-            _export_html(client, experiment_id, output)
-        elif output_format == "json":
-            _export_json(client, experiment_id, output, verdict, fetch_all, page, size)
-        else:
-            _show_table(client, experiment_id, verdict, page, size)
+            if output_format == "html":
+                _export_html(client, experiment_id, output)
+            elif output_format == "json":
+                _export_json(client, experiment_id, output, verdict, fetch_all, page, size)
+            else:
+                _show_table(client, experiment_id, verdict, page, size)
 
     except NotAuthenticatedError:
         console_err.print("[red]Not authenticated.[/red] Run 'hb login' first.")
@@ -94,6 +138,201 @@ def logs_command(experiment_id: str, output_format: str, output: str, verdict: s
         console_err.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
 
+
+# ---------------------------------------------------------------------------
+# Project-level logs
+# ---------------------------------------------------------------------------
+
+def _build_experiment_lookup(client):
+    """Fetch all experiments and build {id: {name, test_category}} lookup."""
+    lookup = {}
+    current_page = 1
+    while True:
+        response = client.list_experiments(page=current_page, size=100)
+        for exp in response.get("data", []):
+            lookup[exp.get("id")] = {
+                "name": exp.get("name", ""),
+                "test_category": exp.get("test_category", ""),
+            }
+        if not response.get("has_next_page"):
+            break
+        current_page += 1
+    return lookup
+
+
+def _enrich_log(log, exp_lookup):
+    """Add experiment_name and test_category to a log entry from lookup."""
+    exp_id = log.get("experiment_id", "")
+    info = exp_lookup.get(exp_id, {})
+    log["experiment_name"] = info.get("name", "")
+    log["test_category"] = info.get("test_category", "")
+    return log
+
+
+def _project_level_logs(client, output_format, output, verdict, page, size, fetch_all,
+                        last_n, test_category, from_date, until_date):
+    """Fetch and display project-level logs with scope filters."""
+    result_filter = None if verdict == "all" else verdict
+
+    # Build experiment lookup for enriching logs
+    exp_lookup = _build_experiment_lookup(client)
+
+    if output_format == "html":
+        _project_export_html(client, output, result_filter, last_n, test_category, from_date, until_date, exp_lookup)
+    elif output_format == "json":
+        _project_export_json(client, output, result_filter, fetch_all, page, size, last_n, test_category, from_date, until_date, exp_lookup)
+    else:
+        _project_show_table(client, result_filter, page, size, last_n, test_category, from_date, until_date, exp_lookup)
+
+
+def _project_show_table(client, result_filter, page, size, last_n, test_category, from_date, until_date, exp_lookup):
+    """Show project-level logs in table format."""
+    response = client.get_project_logs(
+        page=page, size=size, result=result_filter,
+        from_date=from_date, until_date=until_date,
+        test_category=test_category, last=last_n,
+    )
+    logs = response.get("data", [])
+
+    if not logs:
+        console.print("[yellow]No logs found.[/yellow]")
+        return
+
+    table = Table(title=f"Project Logs (page {page})")
+    table.add_column("Experiment", width=20)
+    table.add_column("Test Category", width=20)
+    table.add_column("Verdict", width=6)
+    table.add_column("Severity", width=8)
+    table.add_column("Category", width=15)
+    table.add_column("Prompt", max_width=40)
+
+    for log in logs:
+        _enrich_log(log, exp_lookup)
+
+        result_val = log.get("result", "")
+        result_style = "[green]pass[/green]" if result_val == "pass" else "[red]fail[/red]"
+
+        severity = log.get("severity", "")
+        severity_style = {
+            "critical": "[red bold]critical[/red bold]",
+            "high": "[red]high[/red]",
+            "medium": "[yellow]medium[/yellow]",
+            "low": "[blue]low[/blue]",
+        }.get(str(severity).lower(), str(severity))
+
+        # Shorten test_category for display
+        tc = log.get("test_category", "")
+        tc_short = tc.split("/")[-1] if "/" in tc else tc
+
+        table.add_row(
+            (log.get("experiment_name", "") or "")[:20],
+            tc_short[:20],
+            result_style,
+            severity_style if result_val == "fail" else "",
+            log.get("fail_category") or log.get("gen_category") or "",
+            (log.get("prompt", "") or "")[:40],
+        )
+
+    console.print(table)
+
+    if response.get("has_next_page"):
+        console.print(f"\n[dim]Showing {len(logs)} logs. Use --page to see more.[/dim]")
+
+
+def _project_export_json(client, output, result_filter, fetch_all, page, size, last_n, test_category, from_date, until_date, exp_lookup):
+    """Export project-level logs as JSON."""
+    all_logs = []
+
+    if fetch_all:
+        current_page = 1
+        while True:
+            response = client.get_project_logs(
+                page=current_page, size=100, result=result_filter,
+                from_date=from_date, until_date=until_date,
+                test_category=test_category, last=last_n,
+            )
+            logs = response.get("data", [])
+            all_logs.extend(logs)
+            if not response.get("has_next_page"):
+                break
+            current_page += 1
+    else:
+        response = client.get_project_logs(
+            page=page, size=size, result=result_filter,
+            from_date=from_date, until_date=until_date,
+            test_category=test_category, last=last_n,
+        )
+        all_logs = response.get("data", [])
+
+    # Enrich each log with experiment name and test_category
+    for log in all_logs:
+        _enrich_log(log, exp_lookup)
+
+    export_data = {
+        "project_id": client.project_id,
+        "filters": {
+            "last": last_n,
+            "test_category": test_category,
+            "from": from_date,
+            "until": until_date,
+            "result": result_filter,
+        },
+        "logs": all_logs,
+        "total_logs": len(all_logs),
+    }
+
+    json_output = json.dumps(export_data, indent=2, default=str)
+
+    if output:
+        Path(output).write_text(json_output)
+        console.print(f"[green]JSON exported to:[/green] {output}")
+    else:
+        print(json_output)
+
+
+def _project_export_html(client, output, result_filter, last_n, test_category, from_date, until_date, exp_lookup):
+    """Export project-level logs as HTML report."""
+    with console.status("Generating HTML report...", spinner="dots"):
+        # Fetch all matching logs
+        all_logs = []
+        current_page = 1
+        while True:
+            response = client.get_project_logs(
+                page=current_page, size=100, result=result_filter,
+                from_date=from_date, until_date=until_date,
+                test_category=test_category, last=last_n,
+            )
+            all_logs.extend(response.get("data", []))
+            if not response.get("has_next_page"):
+                break
+            current_page += 1
+
+        # Enrich each log with experiment name and test_category
+        for log in all_logs:
+            _enrich_log(log, exp_lookup)
+
+        # Build pseudo-experiment for the report template
+        pseudo_experiment = {
+            "id": f"project-{client.project_id[:8]}",
+            "name": "Project Logs",
+            "test_category": test_category or "Project-wide",
+            "testing_level": "",
+            "status": "completed",
+            "results": {},
+            "created_at": from_date or "",
+        }
+
+        from ..report import generate_html_report
+        report_html = generate_html_report(pseudo_experiment, all_logs)
+
+    filename = output or f"project_{client.project_id[:8]}_logs.html"
+    Path(filename).write_text(report_html)
+    console.print(f"[green]HTML report exported to:[/green] {filename}")
+
+
+# ---------------------------------------------------------------------------
+# Experiment-level helpers (unchanged)
+# ---------------------------------------------------------------------------
 
 def _resolve_experiment_id(client: HumanboundClient, partial_id: str) -> str:
     """Resolve a partial experiment ID to full ID."""

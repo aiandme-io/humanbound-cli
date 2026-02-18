@@ -6,13 +6,11 @@ import time
 import webbrowser
 import http.server
 import socketserver
-import threading
 import secrets
 import hashlib
 import base64
 import urllib.parse
 from typing import Optional, Dict, Any, List
-from pathlib import Path
 
 import requests
 
@@ -905,6 +903,47 @@ class HumanboundClient:
             params=params,
             include_project=True,
         )
+
+    def get_project_logs(
+        self,
+        page: int = 1,
+        size: int = 50,
+        result: Optional[str] = None,
+        from_date: Optional[str] = None,
+        until_date: Optional[str] = None,
+        test_category: Optional[str] = None,
+        last: Optional[int] = None,
+    ) -> dict:
+        """Get logs for the current project with optional filters.
+
+        Args:
+            page: Page number.
+            size: Items per page.
+            result: Filter by result (pass/fail).
+            from_date: Start date (ISO 8601).
+            until_date: End date (ISO 8601).
+            test_category: Filter by test category (substring match).
+            last: Limit to last N experiments.
+
+        Returns:
+            Paginated response with logs.
+        """
+        if not self._project_id:
+            raise ValidationError("No project selected. Use set_project() first.")
+
+        params: Dict[str, Any] = {"page": page, "size": size}
+        if result:
+            params["result"] = result
+        if from_date:
+            params["from"] = from_date
+        if until_date:
+            params["until"] = until_date
+        if test_category:
+            params["test_category"] = test_category
+        if last:
+            params["last"] = last
+
+        return self.get("logs", params=params, include_project=True)
 
     # -------------------------------------------------------------------------
     # Provider Methods
