@@ -57,10 +57,11 @@ def _derive_agent_name(endpoint: str) -> str:
 @click.option("--tenant", help="Azure tenant ID (platform path, bypasses browser)")
 @click.option("--client-id", "client_id", help="Service principal client ID (platform path)")
 @click.option("--client-secret", "client_secret", help="Service principal secret (platform path)")
+@click.option("--context", "-c", help="Extra context for the judge (e.g. 'Authenticated as Alice, her PII is expected'). String or path to .txt file.")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmations")
 @click.option("--timeout", "-t", type=int, default=SCAN_TIMEOUT, help="Request timeout in seconds")
 def connect_command(endpoint, vendor, name, prompt, repo, openapi, serve,
-                    tenant, client_id, client_secret, yes, timeout):
+                    tenant, client_id, client_secret, context, yes, timeout):
     """Connect your AI agent or scan your cloud platform.
 
     Two paths, one command:
@@ -92,7 +93,7 @@ def connect_command(endpoint, vendor, name, prompt, repo, openapi, serve,
     if has_platform_flags:
         _connect_platform(vendor, name, tenant, client_id, client_secret, yes, timeout)
     elif has_agent_flags:
-        _connect_agent(endpoint, name, prompt, repo, openapi, serve, yes, timeout)
+        _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, timeout)
     else:
         console.print("[yellow]Specify a path:[/yellow]")
         console.print()
@@ -106,7 +107,7 @@ def connect_command(endpoint, vendor, name, prompt, repo, openapi, serve,
 # -- Agent path ----------------------------------------------------------------
 
 
-def _connect_agent(endpoint, name, prompt, repo, openapi, serve, yes, timeout):
+def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, timeout):
     """Agent path: probe -> create project -> auto-test -> show results."""
     from .init import (
         _scan_with_progress, _display_scope, _display_dashboard,
@@ -263,7 +264,6 @@ def _connect_agent(endpoint, name, prompt, repo, openapi, serve, yes, timeout):
         # -- Display results ---------------------------------------------------
         scope = response.get("scope", {})
         risk_profile = response.get("risk_profile", {})
-        capabilities = response.get("capabilities", {})
 
         _display_scope(scope)
 
@@ -308,13 +308,11 @@ def _connect_agent(endpoint, name, prompt, repo, openapi, serve, yes, timeout):
         _display_dashboard(
             name=name,
             risk_profile=risk_profile,
-            capabilities=capabilities,
-            recommendations=response.get("recommendations", []),
             has_integration=bool(default_integration),
         )
 
         # -- Auto-test ---------------------------------------------------------
-        _auto_test(client, project_id, default_integration)
+        _auto_test(client, project_id, default_integration, context)
 
         # -- Next suggestions --------------------------------------------------
         _print_next([
@@ -512,7 +510,7 @@ def _connect_platform(vendor, name, tenant, client_id, client_secret, yes, timeo
 # -- Auto-test helper ----------------------------------------------------------
 
 
-def _auto_test(client, project_id, default_integration):
+def _auto_test(client, project_id, default_integration, context=None):
     """Run first test automatically and show results inline."""
     if not default_integration:
         console.print("\n[dim]No bot integration configured -- skipping auto-test.[/dim]")
@@ -536,15 +534,25 @@ def _auto_test(client, project_id, default_integration):
 
         console.print(f"\n[dim]Running first security test...[/dim]")
 
+        # Build configuration with optional context (max 1500 chars)
+        configuration = {}
+        if context:
+            ctx_path = Path(context)
+            ctx_value = ctx_path.read_text().strip() if ctx_path.is_file() else context
+            if len(ctx_value) > 1500:
+                console.print(f"[red]Context too long ({len(ctx_value)} chars). Maximum is 1,500.[/red]")
+                raise SystemExit(1)
+            configuration["context"] = ctx_value
+
         # Create experiment with auto_start
         experiment_data = {
             "name": f"connect-{time.strftime('%Y%m%d-%H%M%S')}",
             "description": "Initial assessment from hb connect",
-            "test_category": "humanbound/adversarial/owasp_multi_turn",
+            "test_category": "humanbound/adversarial/owasp_agentic",
             "testing_level": "unit",
             "provider_id": provider_id,
             "auto_start": True,
-            "configuration": {},
+            "configuration": configuration,
         }
 
         with console.status("[dim]Creating experiment...[/dim]"):
@@ -556,25 +564,10 @@ def _auto_test(client, project_id, default_integration):
             return
 
         console.print(f"  [green]\u2713[/green] Test started: [dim]{exp_id}[/dim]")
+        console.print()
+        console.print(f"  [dim]Watch progress:[/dim]  hb status {exp_id} -w")
+        console.print(f"  [dim]View logs:[/dim]       hb logs {exp_id}")
 
-        # Wait for completion
-        from .test import _wait_for_completion, _display_results as _display_test_results
-
-        final_status = _wait_for_completion(client, exp_id)
-
-        # Get and display results
-        experiment = client.get_experiment(exp_id)
-        results = experiment.get("results", {})
-        stats = results.get("stats", {})
-
-        _display_test_results(experiment, results, stats)
-
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Test continues in background.[/yellow]")
-        if exp_id:
-            console.print(f"[dim]Check status: hb status {exp_id}[/dim]")
-        else:
-            console.print("[dim]Run 'hb test' to try again.[/dim]")
     except Exception as e:
         console.print(f"\n[yellow]Auto-test failed:[/yellow] {e}")
         console.print("[dim]Run 'hb test' to try again.[/dim]")

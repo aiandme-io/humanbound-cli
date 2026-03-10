@@ -280,7 +280,6 @@ def init_project(name: str, prompt: str, endpoint: str, repo: str, openapi: str,
         # -- Display results ---------------------------------------------------
         scope = response.get("scope", {})
         risk_profile = response.get("risk_profile", {})
-        capabilities = response.get("capabilities", {})
 
         _display_scope(scope)
 
@@ -324,8 +323,6 @@ def init_project(name: str, prompt: str, endpoint: str, repo: str, openapi: str,
         _display_dashboard(
             name=name,
             risk_profile=risk_profile,
-            capabilities=capabilities,
-            recommendations=response.get("recommendations", []),
             has_integration=bool(default_integration),
         )
 
@@ -680,21 +677,10 @@ def _risk_bar(level: str) -> str:
     return bar
 
 
-def _threat_bar(priority: str) -> str:
-    """Build a colored threat severity bar."""
-    if priority == "high":
-        return "[red]\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588[/red]"
-    elif priority == "medium":
-        return "[yellow]\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588[/yellow][dim]\u2591\u2591\u2591\u2591[/dim]"
-    else:
-        return "[dim]\u2588\u2588\u2588\u2588\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591[/dim]"
-
 
 def _display_dashboard(
     name: str,
     risk_profile: dict,
-    capabilities: dict,
-    recommendations: list,
     has_integration: bool,
 ):
     """Compact single-panel risk dashboard with visual indicators."""
@@ -707,32 +693,6 @@ def _display_dashboard(
     # -- Risk gauge --
     bar = _risk_bar(risk_level)
     lines.append(f"  Risk     {bar}  [{risk_color}][bold]{risk_level}[/bold][/{risk_color}] \u00b7 {industry}")
-    lines.append("")
-
-    # -- Data sensitivity --
-    pii = risk_profile.get("handles_pii", False)
-    fin = risk_profile.get("handles_financial_data", False)
-    health = risk_profile.get("handles_health_data", False)
-
-    pii_icon = "[yellow]\u26a0 PII[/yellow]" if pii else "[dim]\u25cb PII[/dim]"
-    fin_icon = "[yellow]\u26a0 Financial[/yellow]" if fin else "[dim]\u25cb Financial[/dim]"
-    health_icon = "[yellow]\u26a0 Health[/yellow]" if health else "[dim]\u25cb Health[/dim]"
-    lines.append(f"  Data     {pii_icon}   {fin_icon}   {health_icon}")
-
-    # -- Capabilities --
-    cap_defs = [
-        ("has_memory", "Memory"),
-        ("has_tools", "Tools"),
-        ("has_rag", "RAG"),
-        ("has_external_apis", "APIs"),
-    ]
-    cap_parts = []
-    for key, label in cap_defs:
-        if capabilities.get(key):
-            cap_parts.append(f"[green]\u2713 {label}[/green]")
-        else:
-            cap_parts.append(f"[dim]\u2717 {label}[/dim]")
-    lines.append(f"  Caps     {'   '.join(cap_parts)}")
 
     # -- Integration + Posture --
     integ = "[green]\u2713 configured[/green]" if has_integration else "[dim]\u2717 none[/dim]"
@@ -744,24 +704,14 @@ def _display_dashboard(
         reg_str = "  ".join(f"[cyan]{r.upper()}[/cyan]" for r in regulations)
         lines.append(f"  Regs     {reg_str}")
 
-    # -- Threats --
-    if recommendations:
+    # -- Threat categories --
+    threats = risk_profile.get("threat_categories", [])
+    if threats:
         lines.append("")
-        lines.append("  [bold]Threats[/bold]")
-        for rec in recommendations[:6]:
-            cat = rec.get("threat_category", "").replace("_", " ").title()
-            prio = rec.get("priority", "medium")
-            bar = _threat_bar(prio)
-            lines.append(f"    {bar}  {cat}")
-
-    # -- Rationale --
-    rationale = risk_profile.get("risk_rationale", "")
-    if rationale:
-        lines.append("")
-        # Truncate long rationales
-        if len(rationale) > 120:
-            rationale = rationale[:117] + "..."
-        lines.append(f"  [dim italic]{rationale}[/dim italic]")
+        lines.append("  [bold]Threat Coverage[/bold]")
+        for t in threats[:8]:
+            cat = t.replace("_", " ").title()
+            lines.append(f"    [yellow]\u2022[/yellow]  {cat}")
 
     console.print(Panel(
         "\n".join(lines),

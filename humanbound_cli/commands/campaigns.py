@@ -14,9 +14,7 @@ console = Console()
 
 PHASE_STYLES = {
     "reconnaissance": "[cyan]Reconnaissance[/cyan]",
-    "hardening": "[yellow]Hardening[/yellow]",
     "red_teaming": "[red]Red Teaming[/red]",
-    "analysis": "[blue]Analysis[/blue]",
     "monitoring": "[green]Monitoring[/green]",
 }
 

@@ -89,7 +89,7 @@ def list_members(as_json: bool):
 
 @members_group.command("invite")
 @click.argument("email")
-@click.option("--role", type=click.Choice(["admin", "developer"]), default="developer", help="Access level for the member")
+@click.option("--role", type=click.Choice(["admin", "developer", "expert"]), default="developer", help="Access level for the member")
 def invite_member(email: str, role: str):
     """Invite a member to the organisation.
 

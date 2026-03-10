@@ -34,6 +34,7 @@ from .commands import (
     report,
     monitor,
     webhooks,
+    assessments,
     mcp,
 )
 
@@ -94,6 +95,7 @@ cli.add_command(campaigns.campaigns_group)
 cli.add_command(webhooks.webhooks_group)
 cli.add_command(connectors.connectors_group)
 cli.add_command(inventory.inventory_group)
+cli.add_command(assessments.assessments_group)
 cli.add_command(auth.auth_group)
 cli.add_command(orgs.orgs_group)
 cli.add_command(completion.completion_command)

@@ -1,0 +1,12 @@
+:root {
+  --md-primary-fg-color: #FD9506;
+  --md-primary-bg-color: #1E2323;
+  --md-accent-fg-color: #FD9506;
+}
+
+/* Hero gradient for index.md title */
+.md-typeset h1 .hero-title {
+  background: linear-gradient(90deg, #FD9506, #FFB74D);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

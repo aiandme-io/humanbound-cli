@@ -26,7 +26,7 @@ Humanbound runs automated adversarial attacks against your bot's live endpoint, 
 | **Behavioral Testing** | Validate intent boundaries, response quality, and functional correctness. |
 | **Posture Scoring** | Quantified 0-100 security score with breakdown by findings, coverage, and resilience. Track over time. |
 | **Shadow AI Discovery** | Scan cloud tenants for AI services, assess risk with 15 SAI threat classes, and govern your AI inventory. |
-| **Guardrails Export** | Generate protection rules from test findings. Export to OpenAI, Azure AI Content Safety, AWS Bedrock, or Humanbound format. |
+| **Guardrails Export** | Generate protection rules from test findings. Export to OpenAI or Humanbound format. |
 | **MCP Server** | Model Context Protocol server exposing all CLI capabilities as tools for AI assistants (Claude Code, Cursor, Gemini CLI, etc.). |
 
 ### Why Humanbound?
@@ -35,7 +35,7 @@ Manual red-teaming doesn't scale. Static analysis can't catch runtime behavior. 
 
 Humanbound is built for this. Point it at your bot's endpoint, define the scope (or let it extract one from your system prompt), and get a structured security report with actionable findings — all mapped to OWASP LLM and Agentic AI categories.
 
-Testing feeds into hardening: export guardrails, track posture across releases, and catch regressions before they reach production. Works with any chatbot or agent, cloud or on-prem.
+Testing feeds into continuous monitoring: export guardrails, track posture across releases, and catch regressions before they reach production. Works with any chatbot or agent, cloud or on-prem.
 
 ---
 
@@ -48,22 +48,22 @@ pip install humanbound-cli
 hb login
 ```
 
-### 2. Scan your bot & create a project
+### 2. Connect your bot & create a project
 
-`hb init` scans your bot, extracts its scope and risk profile, and creates a project — all in one step. Point it at one or more sources:
+`hb connect` probes your bot, extracts its scope and risk profile, creates a project, and runs a first test — all in one step:
 
 ```bash
-# From a system prompt file
-hb init -n "My Bot" --prompt ./system_prompt.txt
+# From a bot endpoint config
+hb connect -e ./bot-config.json
 
-# From a live bot endpoint (API probing)
-hb init -n "My Bot" -e ./bot-config.json
+# With a system prompt for better scope extraction
+hb connect -e ./bot-config.json --prompt ./system_prompt.txt
 
-# From a live URL (browser discovery)
-hb init -n "My Bot" -u https://my-bot.example.com
+# With extra judge context
+hb connect -e ./bot-config.json --context "Authenticated as Alice"
 
-# Combine sources for better analysis
-hb init -n "My Bot" --prompt ./system.txt -e ./bot-config.json
+# Scan cloud platform for shadow AI instead
+hb connect --vendor microsoft
 ```
 
 The `--endpoint/-e` flag accepts a JSON config (file or inline string) matching the experiment integration shape:
@@ -89,7 +89,7 @@ hb test
 hb test -e ./bot-config.json
 
 # Choose test category and depth
-hb test -t humanbound/adversarial/owasp_multi_turn -l system
+hb test -t humanbound/adversarial/owasp_agentic -l system
 ```
 
 ### 4. Review results
@@ -115,11 +115,8 @@ hb guardrails --vendor openai -o guardrails.json
 | Category | Mode | Description |
 |----------|------|-------------|
 | `owasp_single_turn` | Adversarial | Single-prompt attacks: prompt injection, jailbreaks, data exfiltration. Fast coverage of basic vulnerabilities. |
-| `owasp_multi_turn` | Adversarial | Conversational attacks that build context over multiple turns. Tests context manipulation and gradual escalation. |
-| `owasp_agentic_multi_turn` | Adversarial | Targets tool-using agents. Tests goal hijacking, tool misuse, and privilege escalation. |
+| `owasp_agentic` | Adversarial | Universal multi-turn adversarial testing. Score-guided refinement, backtracking, cross-conversation learning. Covers both baseline and agentic (tool-use) categories. Default. |
 | `behavioral` | QA | Intent boundary validation and response quality testing. Ensures agent behaves within defined scope. |
-
-**Adaptive mode:** Both `owasp_multi_turn` and `owasp_agentic_multi_turn` support an adaptive flag that enables evolutionary search — the attack strategy adapts based on bot responses instead of following scripted prompts.
 
 ### Testing Levels
 
@@ -265,22 +262,50 @@ Providers are LLM configurations used for running security tests.
 | `projects delete [id]` | Delete project (with confirmation) |
 
 <details>
-<summary><code>init</code> — scan bot & create project</summary>
+<summary><code>connect</code> — connect agent or scan cloud platform</summary>
+
+```
+hb connect [OPTIONS]
+
+Agent path (--endpoint):
+  --endpoint, -e CONFIG   Bot integration config — JSON string or file path (required)
+  --prompt, -p PATH       System prompt file (optional)
+  --repo, -r PATH         Repository path to scan (optional)
+  --openapi, -o PATH      OpenAPI spec file (optional)
+  --serve, -s             Launch repo bot locally (requires --repo)
+  --context, -c TEXT      Extra context for the judge (string or .txt file path)
+
+Platform path (--vendor):
+  --vendor, -v VENDOR     Cloud vendor: microsoft (required)
+  --tenant                Azure tenant ID (bypasses browser)
+  --client-id             Service principal client ID
+  --client-secret         Service principal secret
+
+Common:
+  --name, -n              Project name (auto-generated from hostname)
+  --yes, -y               Skip confirmations
+  --timeout, -t SECONDS   Request timeout (default: 180)
+```
+
+</details>
+
+<details>
+<summary><code>init</code> — (deprecated, use <code>connect</code>)</summary>
 
 ```
 hb init --name NAME [OPTIONS]
 
 Sources (at least one required):
-  --prompt, -p PATH       System prompt file (text source)
-  --url, -u URL           Live bot URL for browser discovery (url source)
-  --endpoint, -e CONFIG   Bot integration config — JSON string or file path (endpoint source)
-  --repo, -r PATH         Repository path to scan (agentic or text source)
-  --openapi, -o PATH      OpenAPI spec file (text source)
+  --prompt, -p PATH       System prompt file
+  --url, -u URL           Live bot URL for browser discovery
+  --endpoint, -e CONFIG   Bot integration config — JSON string or file path
+  --repo, -r PATH         Repository path to scan
+  --openapi, -o PATH      OpenAPI spec file
 
 Options:
   --description, -d       Project description
   --timeout, -t SECONDS   Scan timeout (default: 180)
-  --yes, -y               Auto-confirm project creation (no interactive prompts)
+  --yes, -y               Auto-confirm project creation
 ```
 
 </details>
@@ -294,23 +319,26 @@ Options:
 hb test [OPTIONS]
 
 Test Category:
-  --test-category, -t   Test to run (default: owasp_multi_turn)
-                        Values: owasp_single_turn, owasp_multi_turn,
-                                owasp_agentic_multi_turn, behavioral
+  --test-category, -t   Test to run (default: owasp_agentic)
+                        Values: owasp_single_turn, owasp_agentic, behavioral
+  --category            Shorthand alias for --test-category
 
 Testing Level:
   --testing-level, -l   Depth of testing (default: unit)
                         unit | system | acceptance
+  --deep                Shortcut for --testing-level system
+  --full                Shortcut for --testing-level acceptance
 
 Endpoint Override (optional — only needed if no default integration):
   -e, --endpoint        Bot integration config — JSON string or file path.
-                        Same shape as 'hb init --endpoint'. Overrides default.
+                        Same shape as 'hb connect --endpoint'. Overrides default.
 
 Other:
   --provider-id         Provider to use (default: first available)
   --name, -n            Experiment name (auto-generated if omitted)
+  --description, -d     Experiment description
   --lang                Language (default: english). Accepts codes: en, de, es...
-  --adaptive            Enable adaptive mode (evolutionary attack strategy)
+  --context, -c         Extra context for the judge (string or .txt file path)
   --no-auto-start       Create without starting (manual mode)
   --wait, -w            Wait for completion
   --fail-on SEVERITY    Exit non-zero if findings >= severity
@@ -346,10 +374,15 @@ Track long-term security vulnerabilities across experiments.
 |---------|-------------|
 | `findings` | List findings (filterable by --status, --severity) |
 | `findings update <id>` | Update finding status or severity |
+| `findings assign <id>` | Assign finding to a team member (--assignee, --status) |
 
 Finding states: **open** → **stale** (30+ days unseen) → **fixed** (resolved). Findings can also **regress** (was fixed, reappeared).
 
+Delegation states: **unassigned** → **assigned** → **in_progress** → **verified**.
+
 ### Coverage
+
+> **Deprecated.** Use `hb posture --coverage` instead.
 
 | Command | Description |
 |---------|-------------|
@@ -365,11 +398,11 @@ Continuous security assurance with automated campaign management (ASCAM).
 | `campaigns` | Show current campaign plan |
 | `campaigns break` | Stop a running campaign |
 
-ASCAM phases: Reconnaissance → Hardening → Red Teaming → Analysis → Monitoring
+ASCAM activities: Scan → Assess → Investigate → Monitor (continuous cycle)
 
 ### Shadow AI Discovery
 
-Discover, assess, and govern AI services across your cloud environment.
+> **Deprecated.** Use `hb connect --vendor microsoft` instead.
 
 | Command | Description |
 |---------|-------------|
@@ -421,11 +454,10 @@ Options for `inventory update`: `--sanctioned / --unsanctioned`, `--owner`, `--d
 
 ### Upload Conversation Logs
 
-Evaluate real production conversations against security judges.
-
 | Command | Description |
 |---------|-------------|
-| `upload-logs <file>` | Upload JSON conversation logs |
+| `logs upload <file>` | Upload JSON conversation logs for evaluation against security judges |
+| `upload-logs <file>` | *(deprecated, use `logs upload`)* |
 
 Options: `--tag`, `--lang`
 
@@ -446,6 +478,31 @@ Options: `--tag`, `--lang`
 | `members invite <email>` | Invite member (--role: admin/developer) |
 | `members remove <id>` | Remove member |
 
+### Reports
+
+Generate shareable HTML or JSON security reports.
+
+| Command | Description |
+|---------|-------------|
+| `report` | Project-level security report (default) |
+| `report --org` | Organisation-wide report (all projects + inventory) |
+| `report --assessment <id>` | Campaign/assessment report |
+
+Options: `--output, -o` (file path), `--json` (JSON instead of HTML)
+
+### Posture & Coverage
+
+```bash
+# Project posture
+hb posture [--json] [--trends] [--coverage]
+
+# Org-level posture (3 dimensions: agent security + shadow AI + quality)
+hb posture --org
+
+# Test coverage (deprecated standalone, use posture --coverage)
+hb coverage [--gaps] [--json]
+```
+
 ### Results & Export
 
 ```bash
@@ -455,17 +512,24 @@ hb logs [experiment_id] [--format table|json|html] [--verdict pass|fail] [--page
 # Export branded HTML report
 hb logs <experiment_id> --format=html [-o report.html]
 
-# Security posture
-hb posture [--json] [--trends]
-
-# Test coverage
-hb coverage [--gaps] [--json]
+# Project-wide logs with filters
+hb logs --last 5 --verdict fail
+hb logs --category owasp_agentic
+hb logs --days 7 --format json -o week.json
 
 # Findings
 hb findings [--status open] [--severity high] [--json]
 
 # Export guardrails configuration
 hb guardrails [--vendor humanbound|openai] [--format json|yaml] [-o FILE]
+```
+
+### Shell Completion
+
+```bash
+hb completion bash    # Generate bash completions
+hb completion zsh     # Generate zsh completions
+hb completion fish    # Generate fish completions
 ```
 
 ### Documentation
@@ -512,7 +576,7 @@ claude mcp add humanbound -- hb mcp
 
 | Type | Count | Examples |
 |------|-------|---------|
-| **Tools** | 55 | `hb_whoami`, `hb_run_test`, `hb_get_posture`, `hb_list_findings`, `hb_export_guardrails` |
+| **Tools** | 48 | `hb_whoami`, `hb_run_test`, `hb_get_posture`, `hb_list_findings`, `hb_export_guardrails` |
 | **Resources** | 3 | `humanbound://context`, `humanbound://posture/{project_id}`, `humanbound://coverage/{project_id}` |
 | **Prompts** | 2 | `run_security_test` (guided test workflow), `security_review` (full review workflow) |
 
@@ -521,7 +585,7 @@ claude mcp add humanbound -- hb mcp
 
 **Context:** `hb_whoami`, `hb_list_organisations`, `hb_set_organisation`, `hb_set_project`
 
-**Projects:** `hb_list_projects`, `hb_get_project`, `hb_update_project`, `hb_delete_project`
+**Projects:** `hb_list_projects`, `hb_get_project`, `hb_create_project`, `hb_update_project`, `hb_delete_project`
 
 **Experiments:** `hb_list_experiments`, `hb_get_experiment`, `hb_get_experiment_status`, `hb_get_experiment_logs`, `hb_terminate_experiment`, `hb_delete_experiment`
 
@@ -563,36 +627,36 @@ npx @modelcontextprotocol/inspector -- hb mcp
 
 ## Examples
 
-### End-to-end: scan, create project, test, review
+### End-to-end: connect, test, review
 
 ```bash
 hb login
 hb switch abc123
 
-# Scan bot & create project (uses endpoint config file)
-hb init -n "Support Bot" -e ./bot-config.json
+# Connect bot, create project, run first test — all in one
+hb connect -e ./bot-config.json
 
-# Run adversarial test (uses project's default integration)
-hb test -t humanbound/adversarial/owasp_multi_turn -l unit
+# Run deeper adversarial test
+hb test --deep
 
 # Watch and review
 hb status --watch
 hb logs
 hb posture
+hb report
 ```
 
-### Multi-source project init
+### Multi-source connect
 
 ```bash
-# Combine system prompt + live endpoint for best scope extraction
-hb init \
-  --name "Support Bot" \
-  --prompt ./prompts/system.txt \
-  --endpoint ./bot-config.json
+# Combine system prompt + endpoint for better scope extraction
+hb connect \
+  --endpoint ./bot-config.json \
+  --prompt ./prompts/system.txt
 
 # From repository + OpenAPI spec
-hb init \
-  --name "API Agent" \
+hb connect \
+  --endpoint ./bot-config.json \
   --repo ./my-agent \
   --openapi ./openapi.yaml
 ```
@@ -621,19 +685,19 @@ hb init \
 ```
 
 ```bash
-# Use with init or test
-hb init -n "My Bot" -e ./bot-config.json
+# Use with connect or test
+hb connect -e ./bot-config.json
 hb test -e ./bot-config.json
 ```
 
 ### Shadow AI discovery & governance
 
 ```bash
-# Register a cloud connector
-hb connectors add --tenant-id abc --client-id def --client-secret
+# One-command scan (browser-based, no connector needed)
+hb connect --vendor microsoft
 
-# Scan, save to inventory, and export report
-hb discover --save --report
+# Or register a persistent connector first
+hb connectors add --tenant-id abc --client-id def --client-secret
 
 # Review and govern assets
 hb inventory
@@ -677,6 +741,17 @@ hb login
 |------|-------------|
 | `~/.humanbound/` | Configuration directory |
 | `~/.humanbound/credentials.json` | Auth tokens (mode `600`) |
+
+---
+
+## Access Levels
+
+| Level | Permissions |
+|-------|------------|
+| `owner` | Full control — create/delete projects, manage members, billing |
+| `admin` | Same as owner except billing and org deletion |
+| `developer` | Create/run experiments, view results, manage providers |
+| `expert` | Annotate logs (human labeling for judge training), view results |
 
 ---
 

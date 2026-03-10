@@ -14,7 +14,7 @@ from ..exceptions import NotAuthenticatedError, APIError
 console = Console()
 
 # Default test category
-DEFAULT_TEST_CATEGORY = "humanbound/adversarial/owasp_multi_turn"
+DEFAULT_TEST_CATEGORY = "humanbound/adversarial/owasp_agentic"
 
 # Testing levels (must match backend TestingLevel enum)
 # unit (~20 min), system (~45 min), acceptance (~90 min)
@@ -76,7 +76,7 @@ def _print_next(suggestions: list):
 @click.option(
     "--test-category", "-t",
     default=DEFAULT_TEST_CATEGORY,
-    help="Test category to run (e.g. humanbound/adversarial/owasp_multi_turn, humanbound/behavioral/qa)"
+    help="Test category to run (e.g. humanbound/adversarial/owasp_agentic, humanbound/behavioral/qa)"
 )
 @click.option(
     "--testing-level", "-l",
@@ -140,11 +140,15 @@ def _print_next(suggestions: list):
     type=click.Choice(["critical", "high", "medium", "low", "any"]),
     help="Exit with error if findings of this severity or higher are found"
 )
+@click.option(
+    "--context", "-c",
+    help="Extra context for the judge (e.g. 'Authenticated as Alice, her PII is expected'). String or path to .txt file."
+)
 def test_command(test_category: str, testing_level: str, name: str, description: str,
                  lang: str, provider_id: str, endpoint: str,
                  category: str, deep: bool, full: bool,
                  no_auto_start: bool,
-                 wait: bool, fail_on: str):
+                 wait: bool, fail_on: str, context: str):
     """Run security tests on the current project.
 
     Creates and starts a new experiment. Uses the project's default
@@ -216,6 +220,15 @@ def test_command(test_category: str, testing_level: str, name: str, description:
             configuration["integration"] = integration
         # When no --endpoint is provided, configuration stays {} and the
         # backend falls back to project.default_integration (set by hb init).
+
+        # Context: string or path to .txt file (max 1500 chars)
+        if context:
+            ctx_path = Path(context)
+            ctx_value = ctx_path.read_text().strip() if ctx_path.is_file() else context
+            if len(ctx_value) > 1500:
+                console.print(f"[red]Context too long ({len(ctx_value)} chars). Maximum is 1,500.[/red]")
+                raise SystemExit(1)
+            configuration["context"] = ctx_value
 
         # Create experiment
         experiment_data = {

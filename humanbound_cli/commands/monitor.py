@@ -20,8 +20,8 @@ def monitor_command(pause: bool, resume: bool, testing_level: str, project: str,
     """Start, pause, or resume continuous security monitoring (ASCAM).
 
     Without flags, starts monitoring on the current project.
-    ASCAM runs automated campaigns: reconnaissance, red teaming, and monitoring
-    phases that continuously test your agent for regressions and new threats.
+    ASCAM runs automated activities (scan, assess, investigate, monitor)
+    that continuously test your agent for regressions and new threats.
 
     \b
     Examples:
