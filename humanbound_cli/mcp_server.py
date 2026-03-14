@@ -48,6 +48,8 @@ mcp = FastMCP(
         "the user wants a quick one-off scan or has no connector set up.\n\n"
 
         "CORE WORKFLOWS:\n"
+        "  One-shot agent onboarding (fastest):\n"
+        "    hb_connect — scan + create project + auto-test in a single call\n"
         "  Discovery → Testing:\n"
         "    hb_trigger_discovery → hb_list_inventory → hb_onboard_inventory_asset → hb_run_test\n"
         "  Security Testing:\n"
@@ -62,7 +64,7 @@ mcp = FastMCP(
 
         "CLI-ONLY COMMANDS (suggest when relevant):\n"
         "  • 'hb discover' — browser-based shadow AI discovery (no connector needed)\n"
-        "  • 'hb init' — interactive project setup with scope extraction from a URL\n"
+        "  • 'hb connect --vendor microsoft' — browser-based platform discovery\n"
         "  • 'hb sentinel setup' — configure continuous monitoring sentinel"
     ),
 )
@@ -1299,6 +1301,166 @@ def hb_break_campaign(campaign_id: str, project_id: Optional[str] = None) -> str
         if not pid:
             return _err(ValueError("No project selected. Use hb_set_project first."))
         return _ok(client.break_campaign(pid, campaign_id))
+    except HumanboundError as e:
+        return _err(e)
+
+
+# =========================================================================
+# CONNECT — one-shot agent onboarding (scan → project → test)
+# =========================================================================
+
+@mcp.tool()
+def hb_connect(
+    endpoint_config: str,
+    name: Optional[str] = None,
+    prompt_text: Optional[str] = None,
+    context: Optional[str] = None,
+    timeout: int = 180,
+) -> str:
+    """Connect an AI agent: probe it, create a project, and run the first security test — all in one call.
+
+    This is the fastest way to onboard an agent. It replicates the CLI
+    command ``hb connect --endpoint <config> --yes``.
+
+    Flow:
+      1. Build extraction sources from the endpoint config (and optional prompt).
+      2. POST /scan — the backend probes the agent and extracts its scope.
+      3. Create a project with the extracted scope.
+      4. Auto-start the first security test (owasp_agentic, unit level).
+
+    After this tool returns, poll hb_get_experiment_status with the
+    returned experiment_id until status is "Finished", then call
+    hb_get_experiment_logs and hb_get_posture for results.
+
+    Args:
+        endpoint_config: JSON string with the agent's chat-completion config.
+            Example: {"streaming": false, "chat_completion": {"endpoint": "https://...",
+            "headers": {"Authorization": "Bearer ..."}, "payload": {"content": "$PROMPT"}}}
+        name: Project name (auto-derived from endpoint hostname if omitted).
+        prompt_text: Optional system prompt text to include as an additional
+            extraction source (improves scope quality).
+        context: Extra context for the judge, e.g. "Authenticated as Alice,
+            her PII is expected" (max 1500 chars).
+        timeout: Request timeout in seconds for the scan call (default 180).
+    """
+    try:
+        client = _get_client()
+
+        if not client.is_authenticated():
+            return _err(ValueError("Not authenticated. The user must run 'hb login' first."))
+        if not client.organisation_id:
+            return _err(ValueError("No organisation selected. Use hb_set_organisation first."))
+
+        # -- Parse endpoint config ----------------------------------------
+        try:
+            bot_config = json.loads(endpoint_config)
+        except json.JSONDecodeError as e:
+            return _err(ValueError(f"Invalid JSON in endpoint_config: {e}"))
+
+        # -- Build sources array ------------------------------------------
+        sources = [{"source": "endpoint", "data": bot_config}]
+
+        if prompt_text:
+            sources.append({"source": "text", "data": {"text": prompt_text}})
+
+        # -- Derive project name ------------------------------------------
+        if not name:
+            try:
+                ep_url = bot_config.get("chat_completion", {}).get("endpoint", "")
+                if ep_url:
+                    from urllib.parse import urlparse
+                    hostname = urlparse(ep_url).hostname
+                    if hostname:
+                        name = hostname
+            except Exception:
+                pass
+            if not name:
+                name = "My Agent"
+
+        # -- POST /scan ---------------------------------------------------
+        scan_response = client.post(
+            "scan",
+            data={"sources": sources},
+            include_project=False,
+            timeout=timeout,
+        )
+
+        scope = scan_response.get("scope", {})
+        risk_profile = scan_response.get("risk_profile", {})
+        default_integration = scan_response.get("default_integration")
+
+        # -- Create project -----------------------------------------------
+        project_data = {
+            "name": name,
+            "description": f"Project created via MCP hb_connect",
+            "scope": scope,
+        }
+        if default_integration:
+            project_data["default_integration"] = default_integration
+
+        project_result = client.post("projects", data=project_data)
+        project_id = project_result.get("id")
+
+        # Auto-select the project
+        client.set_project(project_id)
+
+        # -- Auto-test ----------------------------------------------------
+        experiment_id = None
+        auto_test_error = None
+
+        if default_integration:
+            providers = client.list_providers()
+            if providers:
+                provider = next((p for p in providers if p.get("is_default")), providers[0])
+
+                configuration = {}
+                if context:
+                    if len(context) > 1500:
+                        return _err(ValueError(f"Context too long ({len(context)} chars). Maximum is 1,500."))
+                    configuration["context"] = context
+
+                import time as _time
+                experiment_data = {
+                    "name": f"connect-{_time.strftime('%Y%m%d-%H%M%S')}",
+                    "description": "Initial assessment from hb_connect (MCP)",
+                    "test_category": "humanbound/adversarial/owasp_agentic",
+                    "testing_level": "unit",
+                    "provider_id": provider.get("id"),
+                    "auto_start": True,
+                    "configuration": configuration,
+                }
+
+                try:
+                    exp_result = client.post("experiments", data=experiment_data, include_project=True)
+                    experiment_id = exp_result.get("id")
+                except Exception as e:
+                    auto_test_error = str(e)
+            else:
+                auto_test_error = "No providers configured. Add one with hb_add_provider, then run hb_run_test."
+        else:
+            auto_test_error = "No agent integration detected from scan — skipped auto-test. Run hb_run_test manually."
+
+        # -- Build response -----------------------------------------------
+        result = {
+            "project_id": project_id,
+            "project_name": name,
+            "scope": scope,
+            "risk_profile": risk_profile,
+            "has_integration": bool(default_integration),
+        }
+
+        if experiment_id:
+            result["experiment_id"] = experiment_id
+            result["next_step"] = (
+                f"Poll hb_get_experiment_status(experiment_id='{experiment_id}') "
+                "until status is 'Finished', then call hb_get_experiment_logs "
+                "and hb_get_posture for results."
+            )
+        elif auto_test_error:
+            result["auto_test_skipped"] = auto_test_error
+
+        return _ok(result)
+
     except HumanboundError as e:
         return _err(e)
 

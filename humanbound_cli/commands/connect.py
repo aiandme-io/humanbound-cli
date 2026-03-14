@@ -569,5 +569,7 @@ def _auto_test(client, project_id, default_integration, context=None):
         console.print(f"  [dim]View logs:[/dim]       hb logs {exp_id}")
 
     except Exception as e:
+        import traceback
         console.print(f"\n[yellow]Auto-test failed:[/yellow] {e}")
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
         console.print("[dim]Run 'hb test' to try again.[/dim]")

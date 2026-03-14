@@ -18,7 +18,9 @@ console = Console()
 @click.option("--trends", is_flag=True, help="Show posture history over time")
 @click.option("--org", is_flag=True, help="Show org-level posture (3 dimensions)")
 @click.option("--coverage", is_flag=True, help="Include test coverage breakdown")
-def posture_command(project: str, as_json: bool, trends: bool, org: bool, coverage: bool):
+def posture_command(
+    project: str, as_json: bool, trends: bool, org: bool, coverage: bool
+):
     """View security posture score for a project.
 
     The posture score is a composite metric (0-100) reflecting:
@@ -52,10 +54,13 @@ def posture_command(project: str, as_json: bool, trends: bool, org: bool, covera
                 raise SystemExit(1)
 
             with console.status("Calculating organisation posture..."):
-                response = client.get(f"organisations/{org_id}/posture", include_project=False)
+                response = client.get(
+                    f"organisations/{org_id}/posture", include_project=False
+                )
 
             if as_json:
                 import json
+
                 print(json.dumps(response, indent=2, default=str))
                 return
 
@@ -82,6 +87,7 @@ def posture_command(project: str, as_json: bool, trends: bool, org: bool, covera
 
             if as_json:
                 import json
+
                 print(json.dumps(response, indent=2, default=str))
                 return
 
@@ -90,10 +96,13 @@ def posture_command(project: str, as_json: bool, trends: bool, org: bool, covera
 
         # Get posture from API
         with console.status("Calculating posture..."):
-            response = client.get(f"projects/{project_id}/posture", include_project=True)
+            response = client.get(
+                f"projects/{project_id}/posture", include_project=True
+            )
 
         if as_json:
             import json
+
             print(json.dumps(response, indent=2, default=str))
             return
 
@@ -125,7 +134,7 @@ def posture_command(project: str, as_json: bool, trends: bool, org: bool, covera
 
 def _display_posture(posture: dict):
     """Display posture score with visual breakdown."""
-    score = posture.get("score", 0)
+    score = posture.get("overall_score", 0)
     grade = posture.get("grade", _score_to_grade(score))
 
     # Color based on score
@@ -140,16 +149,21 @@ def _display_posture(posture: dict):
         emoji = "✗"
 
     # Main score panel
-    console.print(Panel(
-        f"[bold {score_color}]{emoji} {score}/100[/bold {score_color}]  [dim]Grade: {grade}[/dim]",
-        title="Security Posture",
-        border_style=score_color,
-        padding=(1, 4),
-    ))
+    console.print(
+        Panel(
+            f"[bold {score_color}]{emoji} {score}/100[/bold {score_color}]  [dim]Grade: {grade}[/dim]",
+            title="Security Posture",
+            border_style=score_color,
+            padding=(1, 4),
+        )
+    )
 
     # Breakdown table
-    breakdown = posture.get("breakdown", {})
-    if breakdown:
+    finding_metrics = posture.get("finding_metrics", {})
+    coverage_metrics = posture.get("coverage_metrics", {})
+    resilience_metrics = posture.get("resilience_metrics", {})
+
+    if finding_metrics or coverage_metrics or resilience_metrics:
         console.print("\n[bold]Score Breakdown:[/bold]\n")
 
         table = Table(show_header=True, header_style="bold")
@@ -159,15 +173,19 @@ def _display_posture(posture: dict):
         table.add_column("Bar", width=30)
 
         components = [
-            ("Findings", breakdown.get("finding_score", 0), "40%"),
-            ("Confidence", breakdown.get("confidence_score", 0), "25%"),
-            ("Coverage", breakdown.get("coverage_score", 0), "20%"),
-            ("Drift", breakdown.get("drift_score", 0), "15%"),
+            ("Findings", finding_metrics.get("score", 0), "40%"),
+            ("Confidence", finding_metrics.get("avg_confidence", 0), "25%"),
+            ("Coverage", coverage_metrics.get("score", 0), "20%"),
+            ("Resilience", resilience_metrics.get("score", 0), "15%"),
         ]
 
         for name, comp_score, weight in components:
             bar = _score_bar(comp_score)
-            color = "green" if comp_score >= 80 else ("yellow" if comp_score >= 60 else "red")
+            color = (
+                "green"
+                if comp_score >= 80
+                else ("yellow" if comp_score >= 60 else "red")
+            )
             table.add_row(
                 name,
                 f"[{color}]{comp_score:.0f}[/{color}]",
@@ -309,14 +327,11 @@ def _calculate_fallback_posture(client: HumanboundClient, project_id: str):
         score = min(100, pass_rate)
 
         posture = {
-            "score": score,
+            "overall_score": score,
             "grade": _score_to_grade(score),
-            "breakdown": {
-                "finding_score": pass_rate,
-                "confidence_score": 80,  # Placeholder
-                "coverage_score": 70,    # Placeholder
-                "drift_score": 85,       # Placeholder
-            },
+            "finding_metrics": {"score": pass_rate},
+            "coverage_metrics": {"score": 70},
+            "resilience_metrics": {"score": 85},
             "recommendations": [],
             "last_tested": latest.get("created_at", "")[:10],
         }
@@ -353,12 +368,14 @@ def _display_org_posture(response: dict):
         emoji = "✗"
 
     # Main score panel
-    console.print(Panel(
-        f"[bold {score_color}]{emoji} {score}/100[/bold {score_color}]  [dim]Grade: {grade}[/dim]",
-        title="Organisation Posture",
-        border_style=score_color,
-        padding=(1, 4),
-    ))
+    console.print(
+        Panel(
+            f"[bold {score_color}]{emoji} {score}/100[/bold {score_color}]  [dim]Grade: {grade}[/dim]",
+            title="Organisation Posture",
+            border_style=score_color,
+            padding=(1, 4),
+        )
+    )
 
     # Dimension breakdown
     dimensions = response.get("dimensions", {})
@@ -378,9 +395,13 @@ def _display_org_posture(response: dict):
 
         for key, label in dimension_labels.items():
             dim_data = dimensions.get(key, {})
-            dim_score = dim_data.get("score", 0) if isinstance(dim_data, dict) else dim_data
+            dim_score = (
+                dim_data.get("score", 0) if isinstance(dim_data, dict) else dim_data
+            )
             bar = _score_bar(dim_score)
-            color = "green" if dim_score >= 80 else ("yellow" if dim_score >= 60 else "red")
+            color = (
+                "green" if dim_score >= 80 else ("yellow" if dim_score >= 60 else "red")
+            )
             table.add_row(
                 label,
                 f"[{color}]{dim_score:.0f}[/{color}]",
@@ -410,7 +431,9 @@ def _display_coverage_section(response: dict):
     empty = bar_width - filled
     bar = f"[{cov_color}]{'█' * filled}[/{cov_color}][dim]{'░' * empty}[/dim]"
 
-    console.print(f"\n[bold]Test Coverage:[/bold]  {bar}  [{cov_color}]{overall:.0f}%[/{cov_color}]")
+    console.print(
+        f"\n[bold]Test Coverage:[/bold]  {bar}  [{cov_color}]{overall:.0f}%[/{cov_color}]"
+    )
 
     # Category breakdown
     categories = response.get("categories", response.get("by_category", []))
@@ -427,7 +450,9 @@ def _display_coverage_section(response: dict):
 
             if total > 0:
                 rate = (passed / total) * 100
-                rate_color = "green" if rate >= 80 else ("yellow" if rate >= 50 else "red")
+                rate_color = (
+                    "green" if rate >= 80 else ("yellow" if rate >= 50 else "red")
+                )
                 rate_str = f"[{rate_color}]{rate:.0f}%[/{rate_color}]"
             else:
                 rate_str = "[dim]-[/dim]"
@@ -441,7 +466,11 @@ def _display_coverage_section(response: dict):
     if gap_list:
         console.print(f"\n[yellow]Gaps ({len(gap_list)} untested):[/yellow]")
         for gap in gap_list[:5]:
-            name = gap.get("category", gap.get("name", str(gap))) if isinstance(gap, dict) else str(gap)
+            name = (
+                gap.get("category", gap.get("name", str(gap)))
+                if isinstance(gap, dict)
+                else str(gap)
+            )
             console.print(f"  - {name}")
         if len(gap_list) > 5:
             console.print(f"  [dim]... and {len(gap_list) - 5} more[/dim]")
@@ -457,7 +486,9 @@ def _print_next(org: bool = False, has_coverage: bool = False):
         suggestions.append("hb report --org         Generate org posture report")
     else:
         if not has_coverage:
-            suggestions.append("hb posture --coverage   Include test coverage breakdown")
+            suggestions.append(
+                "hb posture --coverage   Include test coverage breakdown"
+            )
         suggestions.append("hb posture --trends     View posture over time")
         suggestions.append("hb posture --org        View org-level posture")
         suggestions.append("hb test                 Run tests to improve posture")
