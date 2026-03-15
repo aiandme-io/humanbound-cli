@@ -29,10 +29,10 @@ The judge considers multiple dimensions when evaluating a response:
 
 ## Few-Shot Learning (FSLF)
 
-The judge improves over time through the **Few-Shot Learning Framework**. Human-annotated examples (quality rank 1--2) and high-confidence auto-labeled examples (quality rank 3, >=85% confidence) are used to calibrate the judge for your specific agent. Up to 15 few-shot examples are included per judge call.
+The judge improves over time through the **Few-Shot Learning Framework**. Human-annotated examples (quality rank 1--2) and high-confidence auto-labeled examples (quality rank 3, >=85% confidence) are used to calibrate the judge for your specific agent. Up to 10 few-shot examples are included per judge call, budget-capped at 15 per project with PASS/FAIL balanced selection.
 
 !!! info "Enable FSLF"
-    Set the `few_shot_framework_enabled` flag on your project via the platform dashboard or API. The framework auto-trains nightly at 02:00 UTC.
+    Set the `few_shot_framework_enabled` flag on your project via the platform dashboard or API. The framework auto-trains after each adversarial experiment completes and runs a nightly sweep at 02:00 UTC.
 
 ## Choosing a Judge Provider
 
