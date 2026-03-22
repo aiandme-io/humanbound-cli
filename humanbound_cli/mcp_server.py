@@ -1286,13 +1286,13 @@ def hb_get_campaign_plan(project_id: Optional[str] = None) -> str:
 
 
 @mcp.tool()
-def hb_break_campaign(campaign_id: str, project_id: Optional[str] = None) -> str:
-    """Stop a running campaign (ASCAM automated testing sequence).
+def hb_terminate_campaign(campaign_id: str, project_id: Optional[str] = None) -> str:
+    """Terminate a running campaign (ASCAM automated testing sequence).
 
     This terminates all pending and running experiments in the campaign.
 
     Args:
-        campaign_id: Campaign UUID to stop.
+        campaign_id: Campaign UUID to terminate.
         project_id: Project UUID (uses current project if omitted).
     """
     try:
@@ -1300,7 +1300,7 @@ def hb_break_campaign(campaign_id: str, project_id: Optional[str] = None) -> str
         pid = project_id or client.project_id
         if not pid:
             return _err(ValueError("No project selected. Use hb_set_project first."))
-        return _ok(client.break_campaign(pid, campaign_id))
+        return _ok(client.terminate_campaign(pid, campaign_id))
     except HumanboundError as e:
         return _err(e)
 

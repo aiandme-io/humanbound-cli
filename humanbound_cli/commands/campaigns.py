@@ -120,10 +120,10 @@ def _display_campaign(response: dict):
         console.print(f"\n[dim]Total tests planned: {total_tests}[/dim]")
 
 
-@campaigns_group.command("break")
+@campaigns_group.command("terminate")
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
-def break_campaign(force: bool):
-    """Break (stop) the current running campaign."""
+def terminate_campaign(force: bool):
+    """Terminate the current running campaign."""
     client = HumanboundClient()
 
     if not client.is_authenticated():
@@ -154,14 +154,14 @@ def break_campaign(force: bool):
             return
 
         if not force:
-            if not Confirm.ask(f"Break campaign [bold]{campaign_id}[/bold]? Running experiments will be stopped"):
+            if not Confirm.ask(f"Terminate campaign [bold]{campaign_id}[/bold]? Running experiments will be stopped"):
                 console.print("[dim]Cancelled.[/dim]")
                 return
 
-        with console.status("Breaking campaign..."):
-            client.break_campaign(project_id, campaign_id)
+        with console.status("Terminating campaign..."):
+            client.terminate_campaign(project_id, campaign_id)
 
-        console.print(f"[green]Campaign stopped.[/green]")
+        console.print(f"[green]Campaign terminated.[/green]")
         console.print(f"[dim]ID: {campaign_id}[/dim]")
 
     except NotAuthenticatedError:

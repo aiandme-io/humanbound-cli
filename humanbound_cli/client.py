@@ -1106,9 +1106,9 @@ class HumanboundClient:
         """Get the current campaign plan for a project."""
         return self.get(f"projects/{project_id}/plan")
 
-    def break_campaign(self, project_id: str, campaign_id: str) -> dict:
-        """Break/stop a running campaign."""
-        return self.post(f"projects/{project_id}/plan/break", data={"campaign_id": campaign_id})
+    def terminate_campaign(self, project_id: str, campaign_id: str) -> dict:
+        """Terminate a running campaign."""
+        return self.post(f"projects/{project_id}/plan/terminate", data={"campaign_id": campaign_id})
 
     # -------------------------------------------------------------------------
     # Upload Conversations Methods
