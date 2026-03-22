@@ -28,11 +28,10 @@ The `--endpoint / -e` flag on `hb connect` accepts a JSON config file (or inline
     }
   },
   "telemetry": {
+    "format": "langfuse",
     "mode": "end_of_conversation",
-    "format": "langsmith",
-    "endpoint": "https://api.smith.langchain.com/runs",
-    "headers": { "x-api-key": "ls-..." },
-    "extraction_map": {}
+    "endpoint": "https://cloud.langfuse.com/api/public/sessions/$session_id",
+    "headers": { "Authorization": "Basic <base64(pk:sk)>" }
   }
 }
 ```
@@ -103,136 +102,23 @@ The `--endpoint / -e` flag on `hb connect` accepts a JSON config file (or inline
 
 ## Telemetry (Optional)
 
-Telemetry configuration enables **white-box agentic testing**. When configured, Humanbound can see inside your agent's reasoning -- tool calls, memory operations, retrieval steps, and resource usage -- giving the judge far richer context than black-box request/response testing alone.
+The `telemetry` block enables **whitebox agentic testing**. When present, Humanbound fetches tool calls, memory operations, and resource usage from your observability platform after each conversation, giving the judge visibility into what the agent *did* -- not just what it *said*.
 
-The `telemetry` object sits alongside `chat_completion`, `thread_init`, etc. in your config JSON. The CLI passes it through to the backend unchanged -- no additional CLI flags are needed.
-
-### Modes
-
-#### `end_of_conversation` (default)
-
-After all turns in a conversation complete, Humanbound fetches telemetry from a separate API endpoint (your observability platform). Best for platforms that expose trace/run data via REST API.
+If the `telemetry` block is present, it is enabled. No separate flag needed.
 
 ```json
 {
   "telemetry": {
-    "mode": "end_of_conversation",
-    "format": "langsmith",
-    "endpoint": "https://api.smith.langchain.com/runs",
-    "method": "GET",
-    "headers": {
-      "x-api-key": "ls-your-api-key"
-    }
-  }
-}
-```
-
-#### `per_turn`
-
-Extracts metadata from each chat response using JSONPath navigation via `extraction_map`. No separate endpoint needed -- telemetry is pulled directly from the agent's response payload.
-
-```json
-{
-  "telemetry": {
-    "mode": "per_turn",
-    "format": "custom",
-    "extraction_map": {
-      "tool_calls": "$.choices[0].message.tool_calls",
-      "tokens_used": "$.usage.total_tokens",
-      "model": "$.model"
-    }
-  }
-}
-```
-
-### Configuration Reference
-
-| Field | Required | Description |
-|---|---|---|
-| `mode` | No | `per_turn` or `end_of_conversation` (default: `end_of_conversation`) |
-| `format` | No | Observability platform format: `openai_assistants`, `langsmith`, `langfuse`, `agentops`, `custom` |
-| `endpoint` | For `end_of_conversation` | URL to fetch telemetry data from after conversation completes |
-| `method` | No | HTTP method for the telemetry endpoint (default: `GET`) |
-| `headers` | No | Headers for the telemetry endpoint request (e.g., API keys) |
-| `payload` | No | Request body for POST telemetry requests |
-| `telemetry_auth` | No | Separate auth config for the telemetry endpoint (same shape as `thread_auth`) |
-| `extraction_map` | For `per_turn` | JSONPath map defining where to find telemetry fields in each chat response |
-
-### Format Examples
-
-#### OpenAI Assistants
-
-Fetches run steps (tool calls, retrieval) from the OpenAI Assistants API after each conversation.
-
-```json
-{
-  "telemetry": {
-    "mode": "end_of_conversation",
-    "format": "openai_assistants",
-    "endpoint": "https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}/steps",
-    "headers": {
-      "Authorization": "Bearer sk-...",
-      "OpenAI-Beta": "assistants=v2"
-    }
-  }
-}
-```
-
-#### LangSmith
-
-Fetches trace data from LangSmith's API.
-
-```json
-{
-  "telemetry": {
-    "mode": "end_of_conversation",
-    "format": "langsmith",
-    "endpoint": "https://api.smith.langchain.com/runs",
-    "headers": {
-      "x-api-key": "ls-your-api-key"
-    }
-  }
-}
-```
-
-#### LangFuse
-
-Fetches observation data from LangFuse.
-
-```json
-{
-  "telemetry": {
-    "mode": "end_of_conversation",
     "format": "langfuse",
-    "endpoint": "https://cloud.langfuse.com/api/public/observations",
-    "telemetry_auth": {
-      "endpoint": "https://cloud.langfuse.com/api/public/auth",
-      "headers": {},
-      "payload": {
-        "publicKey": "pk-...",
-        "secretKey": "sk-..."
-      }
+    "mode": "end_of_conversation",
+    "endpoint": "https://cloud.langfuse.com/api/public/sessions/$session_id",
+    "headers": {
+      "Authorization": "Basic <base64(public_key:secret_key)>"
     }
   }
 }
 ```
 
-#### Per-Turn Extraction (Custom)
+Supported platforms: **LangFuse**, **LangSmith**, **OpenAI Assistants**, **Weights & Biases**, **Helicone**, **AgentOps**, and **Custom** (via `extraction_map`).
 
-Extract telemetry directly from each agent response without a separate API call.
-
-```json
-{
-  "telemetry": {
-    "mode": "per_turn",
-    "format": "custom",
-    "extraction_map": {
-      "tool_calls": "$.choices[0].message.tool_calls",
-      "function_calls": "$.choices[0].message.function_call",
-      "tokens_used": "$.usage.total_tokens",
-      "model": "$.model",
-      "finish_reason": "$.choices[0].finish_reason"
-    }
-  }
-}
-```
+For full configuration details, vendor-specific examples, and the custom extraction map reference, see the [Telemetry Integration Guide](../integrations/telemetry.md).

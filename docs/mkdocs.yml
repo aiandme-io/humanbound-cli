@@ -49,6 +49,7 @@ nav:
     - API Keys: management/api-keys.md
     - Team Members: management/members.md
   - 🔌 Integrations:
+    - Telemetry (Whitebox): integrations/telemetry.md
     - CI/CD: integrations/cicd.md
     - Guardrails: integrations/guardrails.md
     - Firewall: integrations/firewall.md

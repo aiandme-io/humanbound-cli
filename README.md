@@ -690,6 +690,22 @@ hb connect -e ./bot-config.json
 hb test -e ./bot-config.json
 ```
 
+### Whitebox testing with telemetry
+
+Add a `telemetry` block to your agent config to enable whitebox testing. Humanbound fetches tool calls, memory operations, and resource usage from your observability platform (LangFuse, LangSmith, OpenAI Assistants, W&B, Helicone, AgentOps, or custom).
+
+```json
+{
+  "telemetry": {
+    "format": "langfuse",
+    "endpoint": "https://cloud.langfuse.com/api/public/sessions/$session_id",
+    "headers": { "Authorization": "Basic <base64(pk:sk)>" }
+  }
+}
+```
+
+See the full [Telemetry Integration Guide](https://docs.humanbound.ai/integrations/telemetry/) for vendor-specific setup and the custom extraction map reference.
+
 ### Shadow AI discovery & governance
 
 ```bash
