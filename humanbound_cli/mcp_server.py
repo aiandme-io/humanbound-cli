@@ -1264,8 +1264,8 @@ def hb_replay_webhook(
 # =========================================================================
 
 @mcp.tool()
-def hb_get_campaign_plan(project_id: Optional[str] = None) -> str:
-    """Get the current campaign plan for a project.
+def hb_get_campaign(project_id: Optional[str] = None) -> str:
+    """Get the current campaign for a project.
 
     Campaigns are automated multi-phase security testing sequences
     (ASCAM — Automated Security Campaign Manager). They orchestrate
@@ -1280,7 +1280,7 @@ def hb_get_campaign_plan(project_id: Optional[str] = None) -> str:
         pid = project_id or client.project_id
         if not pid:
             return _err(ValueError("No project selected. Use hb_set_project first."))
-        return _ok(client.get_campaign_plan(pid))
+        return _ok(client.get_campaign(pid))
     except HumanboundError as e:
         return _err(e)
 

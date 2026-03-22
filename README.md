@@ -611,7 +611,7 @@ claude mcp add humanbound -- hb mcp
 
 **Webhooks:** `hb_create_webhook`, `hb_delete_webhook`, `hb_get_webhook`, `hb_list_webhook_deliveries`, `hb_test_webhook`, `hb_replay_webhook`
 
-**Campaigns:** `hb_get_campaign_plan`, `hb_break_campaign`
+**Campaigns:** `hb_get_campaign`, `hb_terminate_campaign`
 
 **Upload:** `hb_upload_conversations`
 

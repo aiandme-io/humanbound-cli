@@ -48,7 +48,7 @@ def campaigns_group(ctx, as_json):
 
     try:
         with console.status("Fetching campaign plan..."):
-            response = client.get_campaign_plan(project_id)
+            response = client.get_campaign(project_id)
 
         if as_json:
             print(json.dumps(response, indent=2, default=str))
@@ -139,7 +139,7 @@ def terminate_campaign(force: bool):
     try:
         # Get current campaign to find ID
         with console.status("Fetching current campaign..."):
-            response = client.get_campaign_plan(project_id)
+            response = client.get_campaign(project_id)
 
         campaign = response.get("campaign", response)
         campaign_id = campaign.get("id", "")

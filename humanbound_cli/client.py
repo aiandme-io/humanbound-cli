@@ -1102,13 +1102,13 @@ class HumanboundClient:
     # Campaign Methods
     # -------------------------------------------------------------------------
 
-    def get_campaign_plan(self, project_id: str) -> dict:
-        """Get the current campaign plan for a project."""
-        return self.get(f"projects/{project_id}/plan")
+    def get_campaign(self, project_id: str) -> dict:
+        """Get the current campaign for a project."""
+        return self.get(f"projects/{project_id}/campaign")
 
     def terminate_campaign(self, project_id: str, campaign_id: str) -> dict:
         """Terminate a running campaign."""
-        return self.post(f"projects/{project_id}/plan/terminate", data={"campaign_id": campaign_id})
+        return self.post(f"projects/{project_id}/campaign/terminate", data={"campaign_id": campaign_id})
 
     # -------------------------------------------------------------------------
     # Upload Conversations Methods
