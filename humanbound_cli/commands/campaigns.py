@@ -29,7 +29,7 @@ def campaigns_group(ctx, as_json):
     Examples:
       hb campaigns                   # Show current campaign plan
       hb campaigns --json            # JSON output
-      hb campaigns break             # Stop a running campaign
+      hb campaigns terminate         # Terminate a running campaign
     """
     if ctx.invoked_subcommand is not None:
         return
