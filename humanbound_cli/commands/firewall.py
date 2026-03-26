@@ -159,7 +159,7 @@ def train_command(model_path, last_n, from_date, until_date, min_samples,
         model_data["config"]["project_id"] = project_id
         model_data["config"]["created_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ")
         model_data["config"]["n_conversations"] = len(logs)
-        model_data["config"]["model"] = model_path
+        model_data["config"]["detector"] = Path(model_path).stem
         save_hbfw(model_data, output)
 
         file_size = Path(output).stat().st_size / 1024
@@ -187,7 +187,7 @@ def show_command(model_path):
     console.print(f"\n[bold]Firewall Model: {model_path}[/bold]")
     console.print(f"  Created: {config.get('created_at', '?')}")
     console.print(f"  Project: {config.get('project_id', '?')}")
-    console.print(f"  Model script: {config.get('model', '?')}")
+    console.print(f"  Detector: {config.get('detector', '?')}")
     perf = config.get("performance", {})
     stats = perf.get("stats", {})
     if stats:
