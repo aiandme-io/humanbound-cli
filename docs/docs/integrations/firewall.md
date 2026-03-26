@@ -115,8 +115,9 @@ hb firewall train
 ```python
 fw = Firewall.from_config(
     "agent.yaml",
-    model_path="firewall.hbfw",
-    attack_detectors=[
+    model_path="firewall.hbfw",                        # Trained Tier 2 model
+    detector_script="detectors/setfit_classifier.py",   # AgentClassifier script
+    attack_detectors=[                                   # Tier 1 ensemble
         {"model": "protectai/deberta-v3-base-prompt-injection-v2"},
     ],
 )
@@ -158,6 +159,7 @@ settings:
   timeout: 5               # Tier 3 timeout in seconds
   mode: block              # block | log | passthrough
   session_window: 5        # conversation turns for context
+  tier2_min_turns: 3       # Tier 2 activates after N turns
   temperature: 0.0         # LLM judge temperature
 ```
 
@@ -174,6 +176,7 @@ settings:
 | `settings.timeout` | Max seconds for Tier 3 LLM evaluation |
 | `settings.mode` | `block` (enforce), `log` (monitor only), `passthrough` (disabled) |
 | `settings.session_window` | Number of recent turns included as context |
+| `settings.tier2_min_turns` | Minimum conversation turns before Tier 2 activates (default: 3) |
 | `settings.temperature` | LLM judge temperature (0.0 recommended) |
 
 ---
@@ -468,6 +471,7 @@ from hb_firewall import Firewall
 fw = Firewall.from_config(
     "agent.yaml",
     model_path="firewall.hbfw",
+    detector_script="detectors/setfit_classifier.py",
     attack_detectors=[
         {"model": "protectai/deberta-v3-base-prompt-injection-v2"},
     ],
