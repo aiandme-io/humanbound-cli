@@ -369,7 +369,7 @@ hb firewall train --model detectors/setfit_classifier.py
 
 | Option | Description |
 |--------|-------------|
-| `--model PATH` | **Required.** Path to your AgentClassifier script. |
+| `--model PATH` | Path to AgentClassifier script (default: SetFit). |
 | `--last N` | Use last N finished experiments (default: 10). |
 | `--from DATE` | Filter experiments from this date. |
 | `--until DATE` | Filter experiments until this date. |
@@ -416,7 +416,7 @@ firewall.hbfw
   |- weights.npz     # classifier weights (defined by AgentClassifier)
 ```
 
-The weights format depends on your `AgentClassifier` implementation. Only load `.hbfw` files from trusted sources.
+The default SetFit classifier uses [safetensors](https://huggingface.co/docs/safetensors) — no code execution risk. Custom classifiers define their own weight format.
 
 ---
 
