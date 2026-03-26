@@ -138,15 +138,15 @@ def train_command(model_path, last_n, from_date, until_date, min_samples,
             if af.get("total"):
                 r = af.get("rate", 0)
                 s = "green" if r >= 0.8 else "yellow" if r >= 0.5 else "red"
-                console.print(f"    Failed adversarial caught: [{s}]{af['caught']}/{af['total']} ({r:.0%})[/{s}]")
+                console.print(f"    Failed adversarial caught: [{s}]{af['caught']}/{af['total']} ({r:.1%})[/{s}]")
             if ap.get("total"):
                 r = ap.get("rate", 0)
                 s = "green" if r >= 0.5 else "dim"
-                console.print(f"    Passed adversarial caught: [{s}]{ap['caught']}/{ap['total']} ({r:.0%})[/{s}]")
+                console.print(f"    Passed adversarial caught: [{s}]{ap['caught']}/{ap['total']} ({r:.1%})[/{s}]")
             if bn.get("total"):
                 r = bn.get("rate", 0)
                 s = "green" if r >= 0.8 else "yellow" if r >= 0.5 else "red"
-                console.print(f"    Benign allowed: [{s}]{bn['correct']}/{bn['total']} ({r:.0%})[/{s}]")
+                console.print(f"    Benign allowed: [{s}]{bn['correct']}/{bn['total']} ({r:.1%})[/{s}]")
                 if bn.get("blocked"):
                     console.print(f"    [red]Benign blocked: {bn['blocked']}[/red]")
 
@@ -200,11 +200,11 @@ def show_command(model_path):
         bn = val.get("benign", {})
         console.print(f"  Validation:")
         if af.get("total"):
-            console.print(f"    Failed adversarial caught: {af['caught']}/{af['total']} ({af.get('rate',0):.0%})")
+            console.print(f"    Failed adversarial caught: {af['caught']}/{af['total']} ({af.get('rate',0):.1%})")
         if ap.get("total"):
-            console.print(f"    Passed adversarial caught: {ap['caught']}/{ap['total']} ({ap.get('rate',0):.0%})")
+            console.print(f"    Passed adversarial caught: {ap['caught']}/{ap['total']} ({ap.get('rate',0):.1%})")
         if bn.get("total"):
-            console.print(f"    Benign allowed: {bn['correct']}/{bn['total']} ({bn.get('rate',0):.0%})")
+            console.print(f"    Benign allowed: {bn['correct']}/{bn['total']} ({bn.get('rate',0):.1%})")
 
 
 
