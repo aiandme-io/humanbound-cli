@@ -39,11 +39,24 @@ def train_command(model_path, last_n, from_date, until_date, min_samples,
                   output):
     """Train Tier 2 classifiers from adversarial + QA test logs."""
     if not model_path:
-        console.print("[red]Missing --model flag.[/red]")
-        console.print("  Provide a path to an AgentClassifier script:")
-        console.print("  hb firewall train --model detectors/one_class_svm.py")
-        console.print("\n  See: https://github.com/humanbound/firewall#tier-2-agent-specific-classification")
-        sys.exit(1)
+        # Default to SetFit classifier shipped with hb-firewall
+        import importlib.resources
+        try:
+            # Try to find setfit_classifier.py relative to hb_firewall package
+            import hb_firewall
+            pkg_dir = Path(hb_firewall.__file__).parent.parent.parent
+            default = pkg_dir / "detectors" / "setfit_classifier.py"
+            if default.exists():
+                model_path = str(default)
+            else:
+                console.print("[red]Default SetFit classifier not found.[/red]")
+                console.print("  Provide a path to an AgentClassifier script:")
+                console.print("  hb firewall train --model detectors/setfit_classifier.py")
+                sys.exit(1)
+        except Exception:
+            console.print("[red]Provide --model flag.[/red]")
+            console.print("  hb firewall train --model detectors/setfit_classifier.py")
+            sys.exit(1)
 
     try:
         client = HumanboundClient()
@@ -115,6 +128,13 @@ def train_command(model_path, last_n, from_date, until_date, min_samples,
         console.print(f"\n[bold]Step 4:[/bold] Training...")
         performance = hbfw.train(data, permitted_intents=permitted,
                                   restricted_intents=restricted)
+
+        val = performance.get("validation")
+        if val:
+            console.print(f"  Validation ({val.get('val_samples', '?')} samples):")
+            console.print(f"    Precision: {val.get('precision', '?')}")
+            console.print(f"    Recall:    {val.get('recall', '?')}")
+            console.print(f"    F1:        {val.get('f1', '?')}")
         console.print(f"  Training complete.")
 
         # Save
