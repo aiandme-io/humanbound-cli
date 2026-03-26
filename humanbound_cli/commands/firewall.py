@@ -186,8 +186,8 @@ def show_command(model_path):
 
 @firewall_group.command("test")
 @click.argument("hbfw_path", type=click.Path(exists=True))
-@click.option("--model", "model_path", type=str, required=True,
-              help="Path to detector script used during training")
+@click.option("--model", "model_path", type=str, default=None,
+              help="Path to detector script (auto-detected from .hbfw if not provided)")
 @click.option("--input", "-i", "input_text", type=str, default=None)
 def test_command(hbfw_path, model_path, input_text):
     """Test a trained model against inputs."""
@@ -197,13 +197,21 @@ def test_command(hbfw_path, model_path, input_text):
         console.print("[red]Install: pip install hb-firewall[/red]")
         sys.exit(1)
 
+    config, weights = load_hbfw(hbfw_path)
+
+    # Auto-detect detector script from saved config
+    script = model_path or config.get("model")
+    if not script:
+        console.print("[red]Cannot determine detector script.[/red]")
+        console.print("  Provide --model or retrain with a newer CLI version.")
+        sys.exit(1)
+
     try:
-        detector_cls = load_model_class(model_path)
+        detector_cls = load_model_class(script)
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         sys.exit(1)
 
-    config, weights = load_hbfw(hbfw_path)
     hbfw = HBFW(attack_detector=detector_cls("attack"),
                  benign_detector=detector_cls("benign"))
     hbfw.load(config, weights)
