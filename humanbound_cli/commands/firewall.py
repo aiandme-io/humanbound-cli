@@ -184,54 +184,6 @@ def show_command(model_path):
                       f"recall={val.get('recall','?')} f1={val.get('f1','?')}")
 
 
-@firewall_group.command("test")
-@click.argument("hbfw_path", type=click.Path(exists=True))
-@click.option("--model", "model_path", type=str, default=None,
-              help="Path to detector script (auto-detected from .hbfw if not provided)")
-@click.option("--input", "-i", "input_text", type=str, default=None)
-def test_command(hbfw_path, model_path, input_text):
-    """Test a trained model against inputs."""
-    try:
-        from hb_firewall.hbfw import HBFW, load_model_class, load_hbfw
-    except ImportError:
-        console.print("[red]Install: pip install hb-firewall[/red]")
-        sys.exit(1)
-
-    config, weights = load_hbfw(hbfw_path)
-
-    # Auto-detect detector script from saved config
-    script = model_path or config.get("model")
-    if not script:
-        console.print("[red]Cannot determine detector script.[/red]")
-        console.print("  Provide --model or retrain with a newer CLI version.")
-        sys.exit(1)
-
-    try:
-        detector_cls = load_model_class(script)
-    except ValueError as e:
-        console.print(f"[red]{e}[/red]")
-        sys.exit(1)
-
-    hbfw = HBFW(attack_detector=detector_cls("attack"),
-                 benign_detector=detector_cls("benign"))
-    hbfw.load(config, weights)
-
-    if input_text:
-        r = hbfw.classify([{"u": input_text, "a": ""}])
-        _print_result(input_text, r)
-        return
-
-    console.print(f"\n[bold]Interactive test[/bold] (Ctrl+C to exit)\n")
-    conv = []
-    try:
-        while True:
-            msg = console.input("[blue]You:[/blue] ")
-            if not msg.strip():
-                continue
-            conv.append({"u": msg, "a": ""})
-            _print_result(msg, hbfw.classify(conv))
-    except (KeyboardInterrupt, EOFError):
-        console.print("\n")
 
 
 # ---------------------------------------------------------------------------
@@ -293,14 +245,3 @@ def _fetch_intents(client, project_id):
         return None, None
 
 
-def _print_result(text, r):
-    d = r.get("decision", "?")
-    reason = r.get("reason", "")
-    tier = r.get("tier", "?")
-    prob = r.get("attack_probability", 0)
-    if d == "BLOCK":
-        console.print(f"  [red]BLOCK[/red] (tier {tier}, {reason}, p={prob:.2f})")
-    elif d == "ALLOW":
-        console.print(f"  [green]ALLOW[/green] (tier {tier}, {reason})")
-    else:
-        console.print(f"  [yellow]ESCALATE[/yellow] (tier {tier}, {reason}, p={prob:.2f})")
