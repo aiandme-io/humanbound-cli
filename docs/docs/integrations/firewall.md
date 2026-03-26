@@ -55,8 +55,6 @@ pip install hb-firewall
 # With Tier 1 attack detection
 pip install hb-firewall[tier1]
 
-# With benchmark datasets for evaluation
-pip install hb-firewall[benchmarks]
 
 # Everything
 pip install hb-firewall[all]
@@ -211,14 +209,6 @@ hb firewall train --model detectors/setfit_classifier.py
 ```
 
 SetFit takes curated examples from your test logs, generates contrastive pairs (attack vs benign), and fine-tunes [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) to separate them in embedding space. Training takes ~10 minutes on CPU.
-
-**Performance (tested on a banking agent):**
-
-| Metric | Result |
-|--------|--------|
-| Domain-specific benign queries allowed | **96%** |
-| Attacks caught on independent data | **94%** |
-| False block rate on domain queries | **4%** |
 
 Tier 1 (DeBERTa) catches generic single-turn injections. Tier 2 (SetFit) catches agent-specific patterns and fast-tracks legitimate requests without LLM cost. They're complementary.
 
