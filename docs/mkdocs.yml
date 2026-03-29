@@ -39,6 +39,7 @@ nav:
     - Campaigns (ASCAM): concepts/campaigns.md
   - 🧪 Testing:
     - Test Command: testing/test-command.md
+    - Red Coworker [Preview]: testing/red-coworker.md
     - Log Upload: testing/log-upload.md
     - Assessments: testing/assessments.md
     - Reports: testing/reports.md

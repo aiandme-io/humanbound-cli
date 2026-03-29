@@ -563,7 +563,20 @@ def _auto_test(client, project_id, default_integration, context=None):
             console.print("[yellow]Could not start test.[/yellow]")
             return
 
+        import random
+        _chill_messages = [
+            "☕ Go grab a coffee — we've got it from here. Email incoming when done.",
+            "🍺 Red team deployed — treat yourself to a beer, email coming soon.",
+            "🌿 Our agents are on it — go touch grass, we'll email you the results.",
+            "🥊 The bots are fighting — grab a snack and check your inbox later.",
+            "🔓 Hacking in progress — no really, go do something fun. Email on the way.",
+            "🚀 We're poking your agent now — go stretch, results hit your inbox shortly.",
+            "🧘 Time for a break — we'll ping you by email once we're through.",
+            "🎯 Sit back and relax — we'll email you when results are ready.",
+        ]
         console.print(f"  [green]\u2713[/green] Test started: [dim]{exp_id}[/dim]")
+        console.print()
+        console.print(f"  {random.choice(_chill_messages)}")
         console.print()
         console.print(f"  [dim]Watch progress:[/dim]  hb status {exp_id} -w")
         console.print(f"  [dim]View logs:[/dim]       hb logs {exp_id}")

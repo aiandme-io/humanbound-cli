@@ -267,8 +267,20 @@ def test_command(test_category: str, testing_level: str, name: str, description:
         console.print(f"\n[dim]Estimated time: {time_estimates.get(testing_level, 'unknown')}[/dim]")
 
         if not wait:
+            import random
+            _chill_messages = [
+                "☕ Go grab a coffee — we've got it from here. Email incoming when done.",
+                "🍺 Red team deployed — treat yourself to a beer, email coming soon.",
+                "🌿 Our agents are on it — go touch grass, we'll email you the results.",
+                "🥊 The bots are fighting — grab a snack and check your inbox later.",
+                "🔓 Hacking in progress — no really, go do something fun. Email on the way.",
+                "🚀 We're poking your agent now — go stretch, results hit your inbox shortly.",
+                "🧘 Time for a break — we'll ping you by email once we're through.",
+                "🎯 Sit back and relax — we'll email you when results are ready.",
+            ]
             console.print(Panel(
                 f"Experiment ID: {experiment_id}\n\n"
+                f"{random.choice(_chill_messages)}\n\n"
                 f"[dim]Check status:[/dim] hb status {experiment_id}\n"
                 f"[dim]Watch progress:[/dim] hb status {experiment_id} --watch\n"
                 f"[dim]Get logs:[/dim] hb logs {experiment_id}",

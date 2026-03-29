@@ -36,6 +36,7 @@ from .commands import (
     webhooks,
     assessments,
     firewall,
+    redteam,
     mcp,
 )
 
@@ -115,6 +116,7 @@ cli.add_command(logs.logs_group)
 cli.add_command(posture.posture_command)
 cli.add_command(report.report_command)
 cli.add_command(monitor.monitor_command)
+cli.add_command(redteam.redteam_group)
 
 # ---------------------------------------------------------------------------
 # DEPRECATED commands — kept for backward compatibility, remove after v2.0

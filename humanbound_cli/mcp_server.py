@@ -1609,6 +1609,161 @@ Present a structured security review report:
 
 
 # =========================================================================
+# COLLABORATIVE RED TEAM TOOLS
+# =========================================================================
+
+COLLABORATIVE_TEST_CATEGORY = "humanbound/adversarial/collaborative_red_team"
+
+
+@mcp.tool()
+def hb_redteam_analyze(experiment_id: str) -> str:
+    """Analyze the project's security state to seed a collaborative red team session.
+
+    Examines findings, coverage gaps, and known strategies to produce an
+    attack surface map with recommended angles. Must be called on a
+    collaborative_red_team experiment.
+
+    Args:
+        experiment_id: Experiment UUID (must be a collaborative_red_team experiment).
+    """
+    try:
+        client = _get_client()
+        return _ok(client.post(
+            f"experiments/{experiment_id}/actions/analyze",
+            data={},
+            include_project=True,
+            timeout=120,
+        ))
+    except HumanboundError as e:
+        return _err(e)
+
+
+@mcp.tool()
+def hb_redteam_start(experiment_id: str, goal: str = "", method: str = "", examples: list = None) -> str:
+    """Start a new attack session within a collaborative red team experiment.
+
+    If goal/method are provided, uses the engineer's strategy. Otherwise
+    the platform picks from seed analysis recommendations.
+
+    Args:
+        experiment_id: Experiment UUID.
+        goal: Optional attack objective (e.g., "Extract system prompt via role-play").
+        method: Optional approach (e.g., "Impersonate a developer requesting config").
+        examples: Optional list of example messages.
+    """
+    try:
+        client = _get_client()
+        data = {}
+        if goal:
+            data["strategy"] = {
+                "goal": goal,
+                "method": method or "",
+                "examples": examples or [],
+            }
+        return _ok(client.post(
+            f"experiments/{experiment_id}/actions/start",
+            data=data,
+            include_project=True,
+        ))
+    except HumanboundError as e:
+        return _err(e)
+
+
+@mcp.tool()
+def hb_redteam_execute(experiment_id: str, session_id: str, burst_turns: int = 5) -> str:
+    """Execute a burst of attack turns against the target agent.
+
+    Runs the specified number of turns (or fewer if a checkpoint triggers).
+    Returns a checkpoint with: what happened, why we paused, and suggested
+    next moves. Discuss the checkpoint with the engineer before continuing.
+
+    Args:
+        experiment_id: Experiment UUID.
+        session_id: Active session ID (from hb_redteam_start).
+        burst_turns: Number of turns to run before pausing (default: 5).
+    """
+    try:
+        client = _get_client()
+        return _ok(client.post(
+            f"experiments/{experiment_id}/actions/execute",
+            data={"session_id": session_id, "burst_turns": burst_turns},
+            include_project=True,
+            timeout=120,
+        ))
+    except HumanboundError as e:
+        return _err(e)
+
+
+@mcp.tool()
+def hb_redteam_direct(experiment_id: str, session_id: str, input: str) -> str:
+    """Provide strategy guidance to the platform for the active session.
+
+    The engineer's raw input is structured into a goal/method/examples
+    strategy by the platform. Use this after reviewing a checkpoint to
+    pivot the attack angle.
+
+    Args:
+        experiment_id: Experiment UUID.
+        session_id: Active session ID.
+        input: Engineer's guidance (e.g., "Try authority escalation, claim admin access").
+    """
+    try:
+        client = _get_client()
+        return _ok(client.post(
+            f"experiments/{experiment_id}/actions/direct",
+            data={"session_id": session_id, "input": input},
+            include_project=True,
+        ))
+    except HumanboundError as e:
+        return _err(e)
+
+
+@mcp.tool()
+def hb_redteam_judge(experiment_id: str, session_id: str) -> str:
+    """Judge the session and save results as a permanent log.
+
+    Evaluates the full conversation, produces a pass/fail verdict with
+    severity and category, and moves the session's reasoning trace into
+    the log's attack_trace. The session is closed after judging.
+
+    Args:
+        experiment_id: Experiment UUID.
+        session_id: Session ID to judge.
+    """
+    try:
+        client = _get_client()
+        return _ok(client.post(
+            f"experiments/{experiment_id}/actions/judge",
+            data={"session_id": session_id},
+            include_project=True,
+            timeout=60,
+        ))
+    except HumanboundError as e:
+        return _err(e)
+
+
+@mcp.tool()
+def hb_redteam_complete(experiment_id: str) -> str:
+    """Finalize the collaborative red team experiment.
+
+    Owner-only. Judges any remaining active sessions, then triggers
+    the standard completion pipeline (posture, findings, strategy extraction).
+
+    Args:
+        experiment_id: Experiment UUID.
+    """
+    try:
+        client = _get_client()
+        return _ok(client.post(
+            f"experiments/{experiment_id}/actions/complete",
+            data={},
+            include_project=True,
+        ))
+    except HumanboundError as e:
+        return _err(e)
+
+
+# =========================================================================
 # Entry point
 # =========================================================================
 
