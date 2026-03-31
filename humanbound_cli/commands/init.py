@@ -320,10 +320,14 @@ def init_project(name: str, prompt: str, endpoint: str, repo: str, openapi: str,
         console.print(f"  [green]\u2713[/green] Set as current project")
 
         # -- Risk Dashboard (compact single panel) -----------------------------
+        has_telemetry = bool(
+            default_integration and default_integration.get("telemetry")
+        )
         _display_dashboard(
             name=name,
             risk_profile=risk_profile,
             has_integration=bool(default_integration),
+            has_telemetry=has_telemetry,
         )
 
         # -- Next steps --------------------------------------------------------
@@ -682,6 +686,7 @@ def _display_dashboard(
     name: str,
     risk_profile: dict,
     has_integration: bool,
+    has_telemetry: bool = False,
 ):
     """Compact single-panel risk dashboard with visual indicators."""
     risk_level = risk_profile.get("risk_level", "?")
@@ -694,9 +699,16 @@ def _display_dashboard(
     bar = _risk_bar(risk_level)
     lines.append(f"  Risk     {bar}  [{risk_color}][bold]{risk_level}[/bold][/{risk_color}] \u00b7 {industry}")
 
-    # -- Integration + Posture --
+    # -- Integration + Testing depth --
     integ = "[green]\u2713 configured[/green]" if has_integration else "[dim]\u2717 none[/dim]"
-    lines.append(f"  Integ    {integ}        Posture  [dim]not yet scored[/dim]")
+    if has_telemetry:
+        depth = "[green]whitebox[/green] (telemetry enabled)"
+    elif has_integration:
+        depth = "[yellow]blackbox[/yellow]"
+    else:
+        depth = "[dim]n/a[/dim]"
+    lines.append(f"  Integ    {integ}        Depth  {depth}")
+    lines.append(f"  Posture  [dim]not yet scored[/dim]")
 
     # -- Regulations --
     regulations = risk_profile.get("applicable_regulations", [])

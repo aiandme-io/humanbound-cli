@@ -701,6 +701,7 @@ class HumanboundClient:
         include_org: bool = True,
         include_project: bool = False,
         timeout: int = DEFAULT_TIMEOUT,
+        extra_headers: Optional[dict] = None,
     ) -> Any:
         """Make GET request.
 
@@ -710,14 +711,18 @@ class HumanboundClient:
             include_org: Include organisation header.
             include_project: Include project header.
             timeout: Request timeout in seconds.
+            extra_headers: Additional headers to merge.
 
         Returns:
             Parsed JSON response.
         """
         self._ensure_authenticated()
+        headers = self._get_headers(include_org, include_project)
+        if extra_headers:
+            headers.update(extra_headers)
         response = requests.get(
             f"{self.base_url}/{endpoint.lstrip('/')}",
-            headers=self._get_headers(include_org, include_project),
+            headers=headers,
             params=params,
             timeout=timeout,
         )
@@ -883,7 +888,7 @@ class HumanboundClient:
         size: int = 50,
         result: Optional[str] = None,
     ) -> dict:
-        """Get logs for an experiment.
+        """Get logs for an experiment via consolidated /v2/logs endpoint.
 
         Args:
             experiment_id: Experiment UUID.
@@ -894,14 +899,15 @@ class HumanboundClient:
         Returns:
             Paginated response with logs.
         """
-        params = {"page": page, "size": size}
+        params: Dict[str, Any] = {"page": page, "size": size}
+        endpoint = "v2/logs"
         if result:
-            params["result"] = result
+            endpoint = f"v2/logs/{result}"
 
         return self.get(
-            f"experiments/{experiment_id}/logs",
+            endpoint,
             params=params,
-            include_project=True,
+            extra_headers={"experiment_id": experiment_id},
         )
 
     def get_project_logs(
@@ -914,7 +920,7 @@ class HumanboundClient:
         test_category: Optional[str] = None,
         last: Optional[int] = None,
     ) -> dict:
-        """Get logs for the current project with optional filters.
+        """Get logs for the current project via consolidated /v2/logs endpoint.
 
         Args:
             page: Page number.
@@ -932,18 +938,20 @@ class HumanboundClient:
             raise ValidationError("No project selected. Use set_project() first.")
 
         params: Dict[str, Any] = {"page": page, "size": size}
-        if result:
-            params["result"] = result
         if from_date:
             params["from"] = from_date
         if until_date:
-            params["until"] = until_date
+            params["to"] = until_date
         if test_category:
             params["test_category"] = test_category
         if last:
             params["last"] = last
 
-        return self.get("logs", params=params, include_project=True)
+        endpoint = "v2/logs"
+        if result:
+            endpoint = f"v2/logs/{result}"
+
+        return self.get(endpoint, params=params, include_project=True)
 
     # -------------------------------------------------------------------------
     # Provider Methods

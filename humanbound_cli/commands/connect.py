@@ -305,10 +305,14 @@ def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, t
         console.print(f"  [green]\u2713[/green] Set as current project")
 
         # -- Risk Dashboard ----------------------------------------------------
+        has_telemetry = bool(
+            default_integration and default_integration.get("telemetry")
+        )
         _display_dashboard(
             name=name,
             risk_profile=risk_profile,
             has_integration=bool(default_integration),
+            has_telemetry=has_telemetry,
         )
 
         # -- Auto-test ---------------------------------------------------------

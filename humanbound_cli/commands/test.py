@@ -218,8 +218,20 @@ def test_command(test_category: str, testing_level: str, name: str, description:
         if endpoint:
             integration = _load_integration(endpoint)
             configuration["integration"] = integration
-        # When no --endpoint is provided, configuration stays {} and the
-        # backend falls back to project.default_integration (set by hb init).
+            has_telemetry = bool(integration.get("telemetry"))
+        else:
+            # Check project's default integration for telemetry
+            try:
+                project = client.get(f"projects/{client.project_id}", include_project=True)
+                default_integ = project.get("default_integration") or {}
+                has_telemetry = bool(default_integ.get("telemetry"))
+            except Exception:
+                has_telemetry = False
+
+        if has_telemetry:
+            console.print(f"  Depth: [green]whitebox[/green] (telemetry enabled)")
+        else:
+            console.print(f"  Depth: [yellow]blackbox[/yellow]")
 
         # Context: string or path to .txt file (max 1500 chars)
         if context:
