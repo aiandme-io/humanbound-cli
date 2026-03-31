@@ -716,15 +716,6 @@ def _display_dashboard(
         reg_str = "  ".join(f"[cyan]{r.upper()}[/cyan]" for r in regulations)
         lines.append(f"  Regs     {reg_str}")
 
-    # -- Threat categories --
-    threats = risk_profile.get("threat_categories", [])
-    if threats:
-        lines.append("")
-        lines.append("  [bold]Threat Coverage[/bold]")
-        for t in threats[:8]:
-            cat = t.replace("_", " ").title()
-            lines.append(f"    [yellow]\u2022[/yellow]  {cat}")
-
     console.print(Panel(
         "\n".join(lines),
         title=f"[bold]{name}[/bold]",

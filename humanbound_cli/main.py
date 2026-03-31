@@ -242,5 +242,25 @@ def status_alias(ctx, experiment_id: str, watch: bool, show_all: bool):
     )
 
 
+def main():
+    """Entrypoint with session expiry handling."""
+    from .exceptions import SessionExpiredError
+    try:
+        cli(standalone_mode=False)
+    except SystemExit as e:
+        raise SystemExit(e.code)
+    except click.ClickException as e:
+        e.show()
+        raise SystemExit(e.exit_code)
+    except SessionExpiredError:
+        console.print("[yellow]Session expired.[/yellow] Re-authenticating...\n")
+        client = HumanboundClient()
+        client.logout()
+        client.login()
+        console.print("\n[green]Logged in.[/green] Please re-run your command.")
+    except click.Abort:
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
-    cli()
+    main()

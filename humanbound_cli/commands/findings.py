@@ -32,8 +32,9 @@ STATUS_STYLES = {
 @click.option("--page", default=1, help="Page number")
 @click.option("--size", default=20, help="Items per page")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.option("--output", "-o", type=click.Path(), default=None, help="Save output to file (JSON)")
 @click.pass_context
-def findings_group(ctx, status, severity, page, size, as_json):
+def findings_group(ctx, status, severity, page, size, as_json, output):
     """View and manage security findings.
 
     \b
@@ -41,7 +42,8 @@ def findings_group(ctx, status, severity, page, size, as_json):
       hb findings                        # List all findings
       hb findings --status open          # Filter by status
       hb findings --severity high        # Filter by severity
-      hb findings --json                 # JSON output
+      hb findings --json                 # JSON to stdout
+      hb findings -o findings.json       # Save to file
       hb findings update <id> --status fixed
       hb findings assign <id> --assignee <member-id>
     """
@@ -63,6 +65,12 @@ def findings_group(ctx, status, severity, page, size, as_json):
     try:
         with console.status("Fetching findings..."):
             response = client.list_findings(project_id, status=status, severity=severity, page=page, size=size)
+
+        if output:
+            from pathlib import Path
+            Path(output).write_text(json.dumps(response, indent=2, default=str))
+            console.print(f"[green]Findings saved to:[/green] {output}")
+            return
 
         if as_json:
             print(json.dumps(response, indent=2, default=str))

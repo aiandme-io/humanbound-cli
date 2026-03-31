@@ -40,6 +40,12 @@ class ForbiddenError(APIError):
     pass
 
 
+class SessionExpiredError(APIError):
+    """Raised when the session has been revoked or expired (401 with revocation message)."""
+
+    pass
+
+
 class RateLimitError(APIError):
     """Raised when rate limit is exceeded (429)."""
 

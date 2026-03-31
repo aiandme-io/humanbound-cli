@@ -32,6 +32,7 @@ from .exceptions import (
     APIError,
     NotFoundError,
     ForbiddenError,
+    SessionExpiredError,
     RateLimitError,
 )
 
@@ -685,6 +686,10 @@ class HumanboundClient:
 
             if response.status_code == 404:
                 raise NotFoundError(message, response.status_code, data)
+            elif response.status_code == 401 and "revoked" in message.lower():
+                raise SessionExpiredError(message, response.status_code, data)
+            elif response.status_code == 401 and "expired" in message.lower():
+                raise SessionExpiredError(message, response.status_code, data)
             elif response.status_code in (401, 403):
                 raise ForbiddenError(message, response.status_code, data)
             elif response.status_code == 429:

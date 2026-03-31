@@ -24,10 +24,21 @@ def _print_next(suggestions: list):
         console.print(f"  [bold]{cmd}[/bold]  {desc}")
 
 
+_NAME_WORDS = [
+    "amber", "atlas", "blaze", "cedar", "coral", "delta", "dune", "ember",
+    "flint", "frost", "glyph", "grove", "haven", "ivory", "jade", "lunar",
+    "maple", "nexus", "onyx", "pearl", "pulse", "quartz", "ridge", "sage",
+    "slate", "spark", "steel", "storm", "surge", "terra", "tide", "vault",
+    "venom", "vigor", "wave", "zinc",
+]
+
+
 def _derive_agent_name(endpoint: str) -> str:
-    """Derive a project name from bot config hostname, or fall back to 'My Agent'."""
+    """Derive a short project name: {agent}-{word}-{hex4}."""
+    import random
+    suffix = f"{random.choice(_NAME_WORDS)}-{random.randbytes(2).hex()}"
     if not endpoint:
-        return "My Agent"
+        return f"agent.{suffix}"
     try:
         path = Path(endpoint)
         raw = path.read_text() if path.is_file() else endpoint
@@ -36,10 +47,12 @@ def _derive_agent_name(endpoint: str) -> str:
         if ep_url:
             hostname = urlparse(ep_url).hostname
             if hostname:
-                return hostname
+                # Extract first subdomain segment as agent name
+                agent = hostname.split(".")[0]
+                return f"{agent}.{suffix}"
     except Exception:
         pass
-    return "My Agent"
+    return f"agent.{suffix}"
 
 
 @click.command("connect")
@@ -298,11 +311,12 @@ def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, t
             result = client.post("projects", data=project_data)
 
         project_id = result.get("id")
-        console.print(f"  [green]\u2713[/green] Project created: [bold]{name}[/bold] [dim]({project_id})[/dim]")
-
-        # Auto-select the project
         client.set_project(project_id)
-        console.print(f"  [green]\u2713[/green] Set as current project")
+
+        console.print()
+        console.print(f"  [green bold]Project created: {name}[/green bold]")
+        console.print(f"  [dim]{project_id}[/dim]")
+        console.print()
 
         # -- Risk Dashboard ----------------------------------------------------
         has_telemetry = bool(
@@ -317,6 +331,9 @@ def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, t
 
         # -- Auto-test ---------------------------------------------------------
         _auto_test(client, project_id, default_integration, context)
+
+        # -- Continuous monitoring recommendation ------------------------------
+        _recommend_monitoring(risk_profile)
 
         # -- Next suggestions --------------------------------------------------
         _print_next([
@@ -511,6 +528,63 @@ def _connect_platform(vendor, name, tenant, client_id, client_secret, yes, timeo
         raise SystemExit(1)
 
 
+# -- Monitoring recommendation -------------------------------------------------
+
+# Regulations that require or strongly recommend continuous AI monitoring
+_CONTINUOUS_MONITORING_REGS = {
+    "DORA": "Art. 25 — continuous ICT testing including AI services",
+    "PCI-DSS": "Req. 11.3 — continuous monitoring and periodic pen testing",
+    "HIPAA": "§164.308 — ongoing risk analysis and security management",
+    "SOX": "§404 — continuous assessment of internal controls",
+    "NIST AI RMF": "MEASURE — ongoing monitoring of AI system performance",
+    "EU AI ACT": "Art. 72 — post-market monitoring for high-risk AI",
+}
+
+
+def _recommend_monitoring(risk_profile: dict):
+    """Show continuous monitoring recommendation based on risk level and regulations."""
+    risk_level = risk_profile.get("risk_level", "LOW")
+    regulations = [r.upper() for r in risk_profile.get("applicable_regulations", [])]
+
+    # Find matching compliance requirements
+    matching = []
+    for reg in regulations:
+        for key, description in _CONTINUOUS_MONITORING_REGS.items():
+            if key.upper().replace(" ", "") in reg.replace(" ", "").replace("-", ""):
+                matching.append((key, description))
+
+    if risk_level in ("HIGH", "MEDIUM") or matching:
+        console.print()
+        console.print(Panel(
+            _build_monitoring_message(risk_level, matching),
+            title="[bold]Continuous Monitoring[/bold]",
+            border_style="yellow" if risk_level == "HIGH" else "blue",
+            padding=(1, 2),
+        ))
+
+
+def _build_monitoring_message(risk_level: str, matching_regs: list) -> str:
+    lines = []
+    if risk_level == "HIGH":
+        lines.append("[yellow bold]Your agent operates in a high-risk domain.[/yellow bold]")
+    else:
+        lines.append("[blue]Continuous monitoring is recommended for this agent.[/blue]")
+
+    if matching_regs:
+        lines.append("")
+        lines.append("[dim]Applicable compliance requirements:[/dim]")
+        for reg, desc in matching_regs:
+            lines.append(f"  [cyan]{reg}[/cyan]  [dim]{desc}[/dim]")
+
+    lines.append("")
+    lines.append("Enable daily automated security testing:")
+    lines.append("  [bold green]hb monitor --resume[/bold green]")
+    lines.append("")
+    lines.append("[dim]Track assessments at:[/dim]  [underline]https://app.humanbound.ai[/underline]")
+
+    return "\n".join(lines)
+
+
 # -- Auto-test helper ----------------------------------------------------------
 
 
@@ -538,8 +612,8 @@ def _auto_test(client, project_id, default_integration, context=None):
 
         console.print(f"\n[dim]Running first security test...[/dim]")
 
-        # Build configuration with optional context (max 1500 chars)
-        configuration = {}
+        # Build configuration with integration + optional context
+        configuration = {"integration": default_integration}
         if context:
             ctx_path = Path(context)
             ctx_value = ctx_path.read_text().strip() if ctx_path.is_file() else context
