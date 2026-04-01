@@ -31,7 +31,6 @@ from .commands import (
     inventory,
     completion,
     connect,
-    report,
     monitor,
     webhooks,
     assessments,
@@ -114,7 +113,6 @@ cli.add_command(connect.connect_command)
 cli.add_command(test.test_command)
 cli.add_command(logs.logs_group)
 cli.add_command(posture.posture_command)
-cli.add_command(report.report_command)
 cli.add_command(monitor.monitor_command)
 cli.add_command(redteam.redteam_group)
 

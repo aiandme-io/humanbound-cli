@@ -155,3 +155,31 @@ def subscription_details():
     except APIError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
+
+@orgs_group.command("report")
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--no-open", is_flag=True, help="Save without opening browser")
+def org_report(output: str, no_open: bool):
+    """Generate security report for the current organisation.
+
+    \b
+    Examples:
+      hb orgs report
+      hb orgs report -o org-report.html
+    """
+    from ._report_helper import download_and_open
+
+    client = HumanboundClient()
+    if not client.organisation_id:
+        console.print("[yellow]No organisation selected.[/yellow] Run 'hb switch <id>'")
+        raise SystemExit(1)
+
+    oid = client.organisation_id
+    download_and_open(
+        client,
+        f"organisations/{oid}/report",
+        f"org-{oid[:8]}-report.html",
+        output=output,
+        no_open=no_open,
+    )

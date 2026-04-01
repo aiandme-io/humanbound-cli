@@ -200,5 +200,34 @@ def _display_assessment(data: dict):
     ))
 
     console.print("\n[dim]Next:[/dim]")
-    console.print(f"  [bold]hb report --assessment {data.get('id', '')}[/bold]  Generate full report")
+    console.print(f"  [bold]hb assessments report {data.get('id', '')}[/bold]  Generate full report")
     console.print(f"  [bold]hb findings[/bold]                              View current findings")
+
+
+@assessments_group.command("report")
+@click.argument("assessment_id")
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--no-open", is_flag=True, help="Save without opening browser")
+def assessment_report(assessment_id: str, output: str, no_open: bool):
+    """Generate report for a specific assessment.
+
+    \b
+    Examples:
+      hb assessments report abc123
+      hb assessments report abc123 -o report.html
+    """
+    from ._report_helper import download_and_open
+
+    client = HumanboundClient()
+    if not client.project_id:
+        console.print("[yellow]No project selected.[/yellow] Run 'hb projects use <id>'")
+        raise SystemExit(1)
+
+    download_and_open(
+        client,
+        f"projects/{client.project_id}/assessments/{assessment_id}/report",
+        f"assessment-{assessment_id[:8]}-report.html",
+        output=output,
+        no_open=no_open,
+        include_project=True,
+    )

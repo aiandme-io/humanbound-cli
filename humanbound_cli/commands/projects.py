@@ -282,3 +282,35 @@ def delete_project(project_id: str, force: bool):
     except APIError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
+
+@projects_group.command("report")
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--no-open", is_flag=True, help="Save without opening browser")
+def project_report(output: str, no_open: bool):
+    """Generate security report for the current project.
+
+    Downloads the report from the platform and opens it in your browser.
+
+    \b
+    Examples:
+      hb projects report
+      hb projects report -o report.html
+      hb projects report --no-open
+    """
+    from ._report_helper import download_and_open
+
+    client = HumanboundClient()
+    if not client.project_id:
+        console.print("[yellow]No project selected.[/yellow] Run 'hb projects use <id>'")
+        raise SystemExit(1)
+
+    pid = client.project_id
+    download_and_open(
+        client,
+        f"projects/{pid}/report",
+        f"project-{pid[:8]}-report.html",
+        output=output,
+        no_open=no_open,
+        include_project=True,
+    )

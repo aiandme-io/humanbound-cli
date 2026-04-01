@@ -567,3 +567,35 @@ def _resolve_experiment_id(client: HumanboundClient, partial_id: str) -> str:
             return exp.get("id")
 
     return partial_id
+
+
+@experiments_group.command("report")
+@click.argument("experiment_id")
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--no-open", is_flag=True, help="Save without opening browser")
+def experiment_report(experiment_id: str, output: str, no_open: bool):
+    """Generate report for a specific experiment.
+
+    Includes methodology context, metrics, vulnerabilities, and test logs.
+
+    \b
+    Examples:
+      hb experiments report abc123
+      hb experiments report abc123 -o report.html
+    """
+    from ._report_helper import download_and_open
+
+    client = HumanboundClient()
+    if not client.project_id:
+        console.print("[yellow]No project selected.[/yellow] Run 'hb projects use <id>'")
+        raise SystemExit(1)
+
+    eid = _resolve_experiment_id(client, experiment_id)
+    download_and_open(
+        client,
+        f"experiments/{eid}/report",
+        f"experiment-{eid[:8]}-report.html",
+        output=output,
+        no_open=no_open,
+        include_project=True,
+    )
