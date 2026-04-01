@@ -58,9 +58,12 @@ Complete reference of all available commands, organized by category.
 | `hb findings` | List persistent vulnerability findings |
 | `hb findings update <id>` | Update finding status or severity |
 | `hb findings assign <id>` | Assign finding to a team member |
-| `hb report` | Generate HTML security report (project, org, or assessment) |
 | `hb assessments` | List past security assessments |
 | `hb assessments show <id>` | View assessment detail (posture before/after, drift, test count) |
+| `hb assessments report <id>` | Generate assessment HTML report with full test logs |
+| `hb projects report` | Generate project HTML security report |
+| `hb orgs report` | Generate organisation-wide HTML report |
+| `hb experiments report <id>` | Generate experiment HTML report with methodology context |
 
 ## Security
 
