@@ -42,7 +42,6 @@ Complete reference of all available commands, organized by category.
 | `hb experiments show <id>` | Show detailed experiment information |
 | `hb experiments status [id] [--all]` | Check experiment status (single, watch, or all-experiments dashboard) |
 | `hb experiments wait <id>` | Block until experiment completes (CI/CD) |
-| `hb experiments logs <id>` | View conversation logs and verdicts |
 | `hb experiments terminate <id>` | Stop running experiment |
 | `hb experiments delete <id>` | Delete experiment and logs |
 | `hb status [--all]` | Check status of latest experiment or all experiments (alias) |
@@ -51,19 +50,19 @@ Complete reference of all available commands, organized by category.
 
 | Command | Description |
 |---|---|
-| `hb logs` | View logs from latest experiment or project-wide with scope flags (--last, --category, --days, --from, --until) |
+| `hb logs` | View logs from latest experiment or project-wide with scope flags (--last, --category, --days, --from, --until, --assessment \<id\>, --finding \<id\>) |
 | `hb posture` | View security posture score and grade |
 | `hb posture --trends` | View historical posture timeline |
 | `hb coverage` | View test coverage summary and gaps |
-| `hb findings` | List persistent vulnerability findings |
+| `hb findings` | List persistent vulnerability findings (--page, --size, -o \<file\>) |
 | `hb findings update <id>` | Update finding status or severity |
 | `hb findings assign <id>` | Assign finding to a team member |
 | `hb assessments` | List past security assessments |
 | `hb assessments show <id>` | View assessment detail (posture before/after, drift, test count) |
-| `hb assessments report <id>` | Generate assessment HTML report with full test logs |
-| `hb projects report` | Generate project HTML security report |
-| `hb orgs report` | Generate organisation-wide HTML report |
-| `hb experiments report <id>` | Generate experiment HTML report with methodology context |
+| `hb assessments report <id>` | Generate assessment HTML report with full test logs (-o, --no-open) |
+| `hb projects report` | Generate project HTML security report (-o, --no-open) |
+| `hb orgs report` | Generate organisation-wide HTML report (-o, --no-open) |
+| `hb experiments report <id>` | Generate experiment HTML report with methodology context (-o, --no-open) |
 
 ## Security
 
@@ -71,24 +70,24 @@ Complete reference of all available commands, organized by category.
 |---|---|
 | `hb guardrails` | Export learned security rules and patterns |
 | `hb campaigns` | View current ASCAM campaign plan |
-| `hb campaigns break` | Stop running campaign |
+| `hb campaigns terminate` | Stop running campaign |
 | `hb logs upload` | Upload production conversations for evaluation |
 | `hb monitor` | Start, pause, or resume continuous monitoring |
 
-## Shadow AI Discovery
+## AI Discovery
 
 | Command | Description |
 |---|---|
-| `hb connect --vendor <name>` | Scan cloud platform for shadow AI services |
+| `hb connect --vendor <name>` | Scan cloud platform for AI services |
 | `hb connectors` | List registered cloud connectors |
-| `hb connectors add` | Register new cloud connector with credentials |
+| `hb connectors create` | Register new cloud connector with credentials |
 | `hb connectors test <id>` | Test connector connectivity |
 | `hb connectors update <id>` | Update connector name, credentials, or status |
-| `hb connectors remove <id>` | Delete a connector |
+| `hb connectors delete <id>` | Delete a connector |
 | `hb inventory` | List discovered AI assets with filters |
 | `hb inventory view <id>` | View detailed asset information |
 | `hb inventory update <id>` | Update governance fields (owner, sanctioned, policy) |
-| `hb inventory posture` | View shadow AI posture score |
+| `hb inventory posture` | View AI discovery posture score |
 | `hb inventory onboard <id>` | Create security testing project from asset |
 | `hb inventory archive <id>` | Archive an inventory asset |
 
@@ -116,10 +115,10 @@ Complete reference of all available commands, organized by category.
 | `hb api-keys list` | List API keys for programmatic access |
 | `hb api-keys create` | Create new API key (shown once) |
 | `hb api-keys update <id>` | Update key name or activation status |
-| `hb api-keys revoke <id>` | Revoke and delete API key |
+| `hb api-keys delete <id>` | Revoke and delete API key |
 | `hb members list` | List organisation members |
 | `hb members invite` | Invite new member to organisation |
-| `hb members remove <id>` | Remove member from organisation |
+| `hb members delete <id>` | Remove member from organisation |
 
 ## Help & Shell
 

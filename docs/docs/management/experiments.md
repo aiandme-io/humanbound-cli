@@ -42,12 +42,12 @@ hb experiments wait <id> --timeout 60
 ## View Experiment Logs
 
 ```bash
-# View all logs
-hb experiments logs <id>
+# View logs for a specific experiment
+hb logs <id>
 
-# Filter by result
-hb experiments logs <id> --result fail
-hb experiments logs <id> --result pass
+# Filter by verdict
+hb logs <id> --verdict fail
+hb logs <id> --verdict pass
 
 # Export branded HTML report
 hb logs <id> --format html -o report.html
@@ -61,6 +61,19 @@ hb logs --last 3 --verdict fail            # Failed logs from last 3
 hb logs --category owasp_agentic           # Filter by test category
 hb logs --days 7 --format json -o week.json
 hb logs --from 2026-01-01 --until 2026-02-01 --format html -o jan.html
+```
+
+## Generate Experiment Report
+
+```bash
+# Generate HTML report (opens in browser by default)
+hb experiments report <id>
+
+# Save to file
+hb experiments report <id> -o report.html
+
+# Save without opening browser
+hb experiments report <id> -o report.html --no-open
 ```
 
 ## Terminate Running Experiment

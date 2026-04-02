@@ -18,10 +18,10 @@ hb campaigns --json
 
 ```bash
 # Stop with confirmation prompt
-hb campaigns break
+hb campaigns terminate
 
 # Skip confirmation
-hb campaigns break --force
+hb campaigns terminate --force
 ```
 
 ## ASCAM Activities

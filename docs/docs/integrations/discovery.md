@@ -1,4 +1,4 @@
-# Shadow AI Discovery
+# AI Discovery
 
 Discover and assess AI services across your cloud environment. The discovery pipeline scans your tenant client-side, sends results to the Humanbound platform for security evaluation (38 evidence signals, 15 SAI threat classes), and produces an assessed inventory with posture scoring and model lifecycle tracking.
 
@@ -28,7 +28,7 @@ The discovery report includes:
 - **In Development** -- ML projects and staged resources
 - **Resource Topology** -- Interactive Mermaid diagram showing connections between agents, endpoints, models, and channels
 - **Security Evaluations** -- Per-service threat analysis with SAI threat classes, risk scores, and remediation guidance
-- **Posture Estimate** -- Organisation-level shadow AI posture score
+- **Posture Estimate** -- Organisation-level AI discovery posture score
 
 ## Cloud Connectors
 
@@ -36,10 +36,10 @@ Register cloud connectors for persistent discovery. Connectors store encrypted c
 
 ```bash
 # Register a Microsoft connector
-$ hb connectors add --tenant-id <id> --client-id <id> --client-secret
+$ hb connectors create --tenant-id <id> --client-id <id> --client-secret
 
 # Register with explicit vendor and display name
-$ hb connectors add --vendor microsoft --tenant-id <id> --client-id <id> --name "Production"
+$ hb connectors create --vendor microsoft --tenant-id <id> --client-id <id> --name "Production"
 
 # List connectors
 $ hb connectors
@@ -55,7 +55,7 @@ $ hb connectors update <connector-id> --client-secret
 $ hb connectors update <connector-id> --name "New Name" --status disabled
 
 # Remove a connector
-$ hb connectors remove <connector-id>
+$ hb connectors delete <connector-id>
 ```
 
 ## AI Inventory
@@ -83,7 +83,7 @@ $ hb inventory update <asset-id> --sanctioned --owner "security@company.com"
 $ hb inventory update <asset-id> --department "Engineering" --business-purpose "Customer support"
 $ hb inventory update <asset-id> --has-policy --has-risk-assessment
 
-# View shadow AI posture (with optional HTML report)
+# View AI discovery posture (with optional HTML report)
 $ hb inventory posture
 $ hb inventory posture --report
 

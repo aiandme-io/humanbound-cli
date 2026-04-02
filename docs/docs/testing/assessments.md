@@ -17,8 +17,15 @@ hb assessments show <assessment-id>
 ## Generate Assessment Report
 
 ```bash
-hb report --assessment <assessment-id>
+# Generate HTML report (opens in browser by default)
+hb assessments report <assessment-id>
+
+# Save to file
+hb assessments report <assessment-id> -o report.html
+
+# Save without opening browser
+hb assessments report <assessment-id> -o report.html --no-open
 ```
 
 !!! info "Note"
-    Assessments are created automatically by ASCAM activities. Use `hb assessments list` to see history and `hb report --assessment` to generate a detailed report for any past assessment.
+    Assessments are created automatically by ASCAM activities. Use `hb assessments list` to see history and `hb assessments report <id>` to generate a detailed report for any past assessment.

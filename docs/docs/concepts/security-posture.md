@@ -43,7 +43,7 @@ hb posture --org
 Org posture aggregates three dimensions:
 
 - **Agent Security** -- posture across all security-tested projects
-- **Shadow AI** -- risk posture of discovered AI inventory assets
+- **AI Discovery** -- risk posture of discovered AI inventory assets
 - **Quality** -- behavioral quality across all tested agents
 
 ## Include Coverage Breakdown

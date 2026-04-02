@@ -22,10 +22,10 @@ hb members invite user@example.com --role admin
 
 ```bash
 # Remove with confirmation
-hb members remove <id>
+hb members delete <id>
 
 # Skip confirmation
-hb members remove <id> --force
+hb members delete <id> --force
 ```
 
 ## Access Levels

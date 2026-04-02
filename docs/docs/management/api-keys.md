@@ -38,10 +38,10 @@ hb api-keys update <id> --inactive
 
 ```bash
 # Revoke with confirmation
-hb api-keys revoke <id>
+hb api-keys delete <id>
 
 # Skip confirmation
-hb api-keys revoke <id> --force
+hb api-keys delete <id> --force
 ```
 
 ## Scopes

@@ -56,7 +56,7 @@ nav:
     - Firewall: integrations/firewall.md
     - SIEM: integrations/siem.md
     - MCP Server: integrations/mcp.md
-    - Shadow AI Discovery: integrations/discovery.md
+    - AI Discovery: integrations/discovery.md
   - 📦 Deployment: deployment.md
   - 🔐 Authentication: authentication.md
   - 📖 Reference:

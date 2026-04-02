@@ -47,5 +47,18 @@ hb projects delete <id>
 hb projects delete <id> --force
 ```
 
+## Generate Project Report
+
+```bash
+# Generate HTML report (opens in browser by default)
+hb projects report
+
+# Save to file
+hb projects report -o report.html
+
+# Save without opening browser
+hb projects report -o report.html --no-open
+```
+
 !!! warning "Warning"
     Deleting a project will also delete all associated experiments, logs, and findings. This action cannot be undone.
