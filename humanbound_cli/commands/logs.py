@@ -127,7 +127,7 @@ def logs_group(ctx, experiment_id, output_format, output, verdict, page, size, f
                     endpoint = f"findings/{finding_id}/logs/{result_filter}"
 
             params = {"page": page, "size": size}
-            response = client.get(endpoint, params=params)
+            response = client.get(endpoint, params=params, include_project=True)
             logs = response.get("data", response) if isinstance(response, dict) else response
 
             if output_format == "json":

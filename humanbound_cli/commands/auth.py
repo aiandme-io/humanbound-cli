@@ -141,6 +141,17 @@ def whoami():
             except Exception as e:
                 org_display = f"{client.organisation_id} [dim](could not resolve name: {e})[/dim]"
 
+        # Resolve project name
+        project_display = "[dim]not set[/dim]"
+        if client.project_id:
+            project_display = client.project_id
+            try:
+                proj = client.get(f"projects/{client.project_id}", include_project=False)
+                if isinstance(proj, dict) and proj.get("name"):
+                    project_display = f"{proj['name']} ({client.project_id})"
+            except Exception:
+                pass
+
         base_url_line = ""
         if client.base_url.rstrip("/") != DEFAULT_BASE_URL.rstrip("/"):
             base_url_line = f"Base URL: {client.base_url}\n"
@@ -151,7 +162,7 @@ def whoami():
             f"Email: {client.email or '[dim]unknown[/dim]'}\n"
             f"{base_url_line}"
             f"Organisation: {org_display}\n"
-            f"Project: {client.project_id or '[dim]not set[/dim]'}",
+            f"Project: {project_display}",
             title="Humanbound Status",
         ))
     else:

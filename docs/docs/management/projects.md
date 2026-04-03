@@ -47,6 +47,20 @@ hb projects delete <id>
 hb projects delete <id> --force
 ```
 
+## Project Status
+
+Check if anything is running on the project — experiments, campaigns, monitoring state.
+
+```bash
+# One-shot status check
+hb projects status
+
+# Watch mode — polls every 3 minutes until idle
+hb projects status -w
+```
+
+Shows: active/idle state, running experiments, posture grade, monitoring status, active campaign.
+
 ## Generate Project Report
 
 ```bash

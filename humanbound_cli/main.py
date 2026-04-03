@@ -22,8 +22,6 @@ from .commands import (
     api_keys,
     members,
     campaigns,
-    connectors,
-    inventory,
     completion,
     connect,
     monitor,
@@ -89,8 +87,6 @@ cli.add_command(api_keys.api_keys_group)
 cli.add_command(members.members_group)
 cli.add_command(campaigns.campaigns_group)
 cli.add_command(webhooks.webhooks_group)
-cli.add_command(connectors.connectors_group)
-cli.add_command(inventory.inventory_group)
 cli.add_command(assessments.assessments_group)
 cli.add_command(firewall.firewall_group)
 cli.add_command(auth.auth_group)

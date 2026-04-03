@@ -65,6 +65,7 @@ hb connect -e ./config.json -y
 | `-o, --openapi` | Path to OpenAPI spec file (agent path) |
 | `-s, --serve` | Launch repo agent locally (requires `--repo`) |
 | `-c, --context` | Extra context for the judge (string or .txt file path) |
+| `-l, --level` | Testing depth: `unit` (quick, default), `system` (deep), `acceptance` (full) |
 | `-n, --name` | Project name (auto-generated from hostname) |
 | `-y, --yes` | Skip confirmations |
 | `-t, --timeout` | Request timeout in seconds (default: 180) |

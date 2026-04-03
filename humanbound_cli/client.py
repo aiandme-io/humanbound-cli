@@ -909,7 +909,7 @@ class HumanboundClient:
         if result:
             endpoint = f"experiments/{experiment_id}/logs/{result}"
 
-        return self.get(endpoint, params=params)
+        return self.get(endpoint, params=params, include_project=True)
 
     def get_project_logs(
         self,
@@ -952,7 +952,7 @@ class HumanboundClient:
         if result:
             endpoint = f"projects/{self._project_id}/logs/{result}"
 
-        return self.get(endpoint, params=params)
+        return self.get(endpoint, params=params, include_project=True)
 
     # -------------------------------------------------------------------------
     # Provider Methods

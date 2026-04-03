@@ -1,8 +1,10 @@
 """Project commands."""
 
 import click
+import time
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 from rich.prompt import Confirm
 
 from ..client import HumanboundClient
@@ -324,3 +326,100 @@ def project_report(output: str, no_open: bool):
         no_open=no_open,
         include_project=True,
     )
+
+
+@projects_group.command("status")
+@click.option("--watch", "-w", is_flag=True, help="Poll every 3 minutes until idle")
+def project_status(watch: bool):
+    """Show project activity status — is anything running?
+
+    \b
+    Examples:
+      hb projects status
+      hb projects status -w
+    """
+    client = HumanboundClient()
+    if not client.project_id:
+        console.print("[yellow]No project selected.[/yellow] Run 'hb projects use <id>'")
+        raise SystemExit(1)
+
+    pid = client.project_id
+
+    try:
+        if watch:
+            _watch_project_status(client, pid)
+        else:
+            data = client.get(f"projects/{pid}/status")
+            _display_project_status(data)
+    except NotAuthenticatedError:
+        console.print("[red]Not authenticated.[/red] Run 'hb login' first.")
+        raise SystemExit(1)
+    except APIError as e:
+        msg = str(e) or "Could not fetch project status"
+        console.print(f"[red]Error:[/red] {msg}")
+        raise SystemExit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+def _display_project_status(data):
+    """Render project status panel."""
+    name = data.get("project_name", "Unknown")
+    active = data.get("active", False)
+    monitoring = data.get("monitoring", "off")
+    running = data.get("running_experiments", 0)
+    grade = data.get("posture_grade")
+    score = data.get("posture_score")
+    campaign = data.get("active_campaign")
+
+    # Status indicator
+    if active:
+        status_line = f"[yellow]Active[/yellow] — {running} experiment(s) running"
+    else:
+        status_line = "[green]Idle[/green] — no experiments running"
+
+    # Posture
+    if grade and score is not None:
+        grade_color = {"A": "green", "B": "green", "C": "yellow", "D": "red", "F": "red"}.get(grade, "white")
+        posture_line = f"Posture: [{grade_color}]{grade}[/{grade_color}] ({score}/100)"
+    else:
+        posture_line = "Posture: [dim]not yet evaluated[/dim]"
+
+    # Monitoring
+    mon_color = {"active": "green", "paused": "yellow", "off": "dim"}.get(monitoring, "dim")
+    mon_line = f"Monitoring: [{mon_color}]{monitoring}[/{mon_color}]"
+
+    # Campaign
+    campaign_line = ""
+    if campaign:
+        campaign_line = f"\nCampaign: {campaign.get('activity', '?')} ({campaign.get('scope', '?')})"
+
+    # Running experiments detail
+    exp_lines = ""
+    for exp in data.get("experiments", []):
+        cat = exp.get("test_category", "").split("/")[-1] if exp.get("test_category") else "?"
+        exp_lines += f"\n  [{exp.get('status')}] {cat} ({exp.get('id', '')[:8]})"
+
+    body = f"{status_line}\n{posture_line}\n{mon_line}{campaign_line}{exp_lines}"
+
+    console.print(Panel(body, title=f"{name}"))
+
+
+def _watch_project_status(client, pid):
+    """Poll project status every 3 minutes until idle."""
+    console.print("[dim]Watching project status (Ctrl+C to stop)...[/dim]\n")
+    try:
+        while True:
+            data = client.get(f"projects/{pid}/status")
+            console.clear()
+            _display_project_status(data)
+
+            if not data.get("active", False):
+                console.print("\n[green]All experiments completed.[/green]")
+                break
+
+            console.print(f"\n[dim]Next check in 3 minutes... (Ctrl+C to stop)[/dim]")
+            time.sleep(180)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopped watching.[/dim]")

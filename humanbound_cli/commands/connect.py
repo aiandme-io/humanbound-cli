@@ -71,10 +71,11 @@ def _derive_agent_name(endpoint: str) -> str:
 @click.option("--client-id", "client_id", help="Service principal client ID (platform path)")
 @click.option("--client-secret", "client_secret", help="Service principal secret (platform path)")
 @click.option("--context", "-c", help="Extra context for the judge (e.g. 'Authenticated as Alice, her PII is expected'). String or path to .txt file.")
+@click.option("--level", "-l", type=click.Choice(["unit", "system", "acceptance"]), default="unit", help="Testing depth: unit (quick), system (deep), acceptance (full)")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmations")
 @click.option("--timeout", "-t", type=int, default=SCAN_TIMEOUT, help="Request timeout in seconds")
 def connect_command(endpoint, vendor, name, prompt, repo, openapi, serve,
-                    tenant, client_id, client_secret, context, yes, timeout):
+                    tenant, client_id, client_secret, context, level, yes, timeout):
     """Connect your AI agent or scan your cloud platform.
 
     Two paths, one command:
@@ -106,7 +107,7 @@ def connect_command(endpoint, vendor, name, prompt, repo, openapi, serve,
     if has_platform_flags:
         _connect_platform(vendor, name, tenant, client_id, client_secret, yes, timeout)
     elif has_agent_flags:
-        _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, timeout)
+        _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, level, yes, timeout)
     else:
         console.print("[yellow]Specify a path:[/yellow]")
         console.print()
@@ -120,7 +121,7 @@ def connect_command(endpoint, vendor, name, prompt, repo, openapi, serve,
 # -- Agent path ----------------------------------------------------------------
 
 
-def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, timeout):
+def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, level, yes, timeout):
     """Agent path: probe -> create project -> auto-test -> show results."""
     from .init import (
         _scan_with_progress, _display_scope, _display_dashboard,
@@ -330,7 +331,7 @@ def _connect_agent(endpoint, name, prompt, repo, openapi, serve, context, yes, t
         )
 
         # -- Auto-test ---------------------------------------------------------
-        _auto_test(client, project_id, default_integration, context)
+        _auto_test(client, project_id, default_integration, context, level)
 
         # -- Continuous monitoring recommendation ------------------------------
         _recommend_monitoring(risk_profile)
@@ -588,7 +589,7 @@ def _build_monitoring_message(risk_level: str, matching_regs: list) -> str:
 # -- Auto-test helper ----------------------------------------------------------
 
 
-def _auto_test(client, project_id, default_integration, context=None):
+def _auto_test(client, project_id, default_integration, context=None, level="unit"):
     """Run first test automatically and show results inline."""
     if not default_integration:
         console.print("\n[dim]No agent integration configured -- skipping auto-test.[/dim]")
@@ -627,7 +628,7 @@ def _auto_test(client, project_id, default_integration, context=None):
             "name": f"connect-{time.strftime('%Y%m%d-%H%M%S')}",
             "description": "Initial assessment from hb connect",
             "test_category": "humanbound/adversarial/owasp_agentic",
-            "testing_level": "unit",
+            "testing_level": level,
             "provider_id": provider_id,
             "auto_start": True,
             "configuration": configuration,
@@ -656,7 +657,8 @@ def _auto_test(client, project_id, default_integration, context=None):
         console.print()
         console.print(f"  {random.choice(_chill_messages)}")
         console.print()
-        console.print(f"  [dim]Watch progress:[/dim]  hb status {exp_id} -w")
+        console.print(f"  [dim]Watch progress:[/dim]  hb projects status -w")
+        console.print(f"  [dim]Experiment:[/dim]      hb status {exp_id} -w")
         console.print(f"  [dim]View logs:[/dim]       hb logs {exp_id}")
 
     except Exception as e:
