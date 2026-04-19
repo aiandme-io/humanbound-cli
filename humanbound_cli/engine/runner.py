@@ -26,6 +26,8 @@ class TestConfig:
     repo_path: Optional[str] = None
     prompt_path: Optional[str] = None
     scope_path: Optional[str] = None
+    # Compliance
+    compliance: Optional[str] = None  # compliance profile name (fca, hipaa, etc.)
     # Output modes
     debug: bool = False    # single-threaded, full sequential output
     verbose: bool = False  # threaded, Rich Live dashboard
