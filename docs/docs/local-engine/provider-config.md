@@ -82,4 +82,4 @@ hb login
 hb config set provider managed
 ```
 
-This routes LLM calls through Humanbound's infrastructure using your account credits (free tier: 3 scans/month). Your local API key is removed — your Humanbound account handles authentication and billing.
+Every Humanbound account includes a free LLM provider — no external API key required. Free tier includes 3 scans per month. Your local API key is removed when switching to the Humanbound provider.
