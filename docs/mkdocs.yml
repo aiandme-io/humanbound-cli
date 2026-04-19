@@ -37,13 +37,6 @@ nav:
     - Scope Discovery: local-engine/scope-discovery.md
     - Orchestrators: local-engine/orchestrators.md
     - Output & Export: local-engine/output-formats.md
-  - 🛡️ Defence:
-    - Firewall: integrations/firewall.md
-    - Guardrails: integrations/guardrails.md
-  - 🔄 AISecOps:
-    - Continuous Monitoring: concepts/campaigns.md
-    - Findings: concepts/findings.md
-    - Test Coverage: concepts/coverage.md
   - 💡 Concepts:
     - LLM-as-a-Judge: concepts/llm-as-judge.md
     - Security Posture: concepts/security-posture.md
@@ -53,6 +46,13 @@ nav:
     - Log Upload: testing/log-upload.md
     - Assessments: testing/assessments.md
     - Reports: testing/reports.md
+  - 🛡️ Defence:
+    - Firewall: integrations/firewall.md
+    - Guardrails: integrations/guardrails.md
+  - 🔄 AISecOps:
+    - Continuous Monitoring: concepts/campaigns.md
+    - Findings: concepts/findings.md
+    - Test Coverage: concepts/coverage.md
   - ⚙️ Management:
     - Projects: management/projects.md
     - Experiments: management/experiments.md
