@@ -1,36 +1,50 @@
 # Firewall
 
-The Humanbound Firewall is an open-source, multi-tier security layer that sits between your users and your AI agent. It evaluates every incoming message through up to four tiers of protection — from zero-cost input sanitization to deep LLM-based contextual analysis — blocking prompt injections, jailbreaks, and scope violations before they reach your agent.
+## The Challenge: Runtime Protection for AI Agents
 
-The firewall is available as a standalone Python library ([hb-firewall](https://github.com/humanbound/hb-firewall)) and integrates with the Humanbound CLI for training agent-specific classifiers from your adversarial test data.
+Testing identifies vulnerabilities. Monitoring tracks them over time. But neither prevents attacks from reaching the agent in production. The gap between "knowing an agent is vulnerable" and "preventing exploitation" requires a runtime defence layer — a firewall purpose-built for the semantics of natural language interaction.
 
-## How It Works
+Traditional web application firewalls (WAFs) operate on HTTP requests, matching patterns against known attack signatures. AI agent security requires a fundamentally different approach. Attacks arrive as natural language — syntactically valid, contextually plausible, and semantically indistinguishable from legitimate requests when examined in isolation. A prompt injection disguised as a customer support query cannot be caught by regex or keyword matching. It requires understanding of the agent's intended scope, the user's conversational trajectory, and the semantic distance between what was asked and what should be permitted.
 
-Every user message passes through four tiers:
+## Architecture: Graduated Confidence
+
+The Humanbound Firewall implements a multi-tier evaluation architecture where each tier represents a different tradeoff between speed, cost, and analytical depth. User messages enter at Tier 0 and escalate upward only when lower tiers cannot make a confident decision. This design ensures that the majority of requests — both legitimate and clearly malicious — are resolved in milliseconds without LLM cost, while genuinely ambiguous inputs receive full contextual analysis.
 
 ```
 User Input
-    |
-[ Tier 0 ]  Sanitization                    ~0ms, free
-    |        Strips invisible control characters, zero-width joiners,
-    |        bidi overrides. Always active.
-    |
-[ Tier 1 ]  Basic Attack Detection          ~15-50ms, free
-    |        Pre-trained models run in parallel (DeBERTa, Azure Content
-    |        Safety, Lakera, custom APIs). Configurable consensus.
-    |        Catches ~85% of prompt injections out of the box.
-    |
-[ Tier 2 ]  Agent-Specific Classification   ~10ms, free
-    |        Trained on YOUR adversarial test logs and QA data.
-    |        Catches attacks Tier 1 misses. Fast-tracks benign requests.
-    |        You provide the model — the platform provides the data.
-    |
+    │
+[ Tier 0 ]  Sanitization                    ~0ms, zero cost
+    │        Strips invisible control characters, zero-width joiners,
+    │        bidirectional overrides. Always active. Eliminates an
+    │        entire class of encoding-based attacks before any model runs.
+    │
+[ Tier 1 ]  Attack Detection Ensemble       ~15-50ms, zero cost
+    │        Pre-trained models run in parallel (DeBERTa, Azure Content
+    │        Safety, or custom APIs). Configurable consensus threshold.
+    │        Catches the majority of known prompt injection patterns.
+    │
+[ Tier 2 ]  Agent-Specific Classification   ~10ms, zero cost
+    │        Fine-tuned on adversarial test data from YOUR agent.
+    │        Detects attacks that generic models miss. Fast-tracks
+    │        legitimate requests that match known benign patterns.
+    │
 [ Tier 3 ]  LLM Judge                       ~1-2s, token cost
-             Full contextual analysis against your agent's security
-             policy. Only called when Tiers 1-2 are uncertain.
+             Full contextual analysis against the agent's security
+             policy, permitted intents, and restricted actions.
+             Called only when lower tiers cannot reach confidence.
 ```
 
-Each tier either makes a confident decision or escalates to the next. No forced decisions — when uncertain, the system asks something smarter.
+This graduated architecture reflects a core design principle: **confidence-based escalation, not forced classification**. When a tier is uncertain, it does not guess — it escalates to a more capable evaluator. The result is that clear cases (both attacks and legitimate requests) are resolved at the speed and cost of the lowest capable tier, while edge cases receive the analytical depth they require.
+
+## Connection to Testing and Monitoring
+
+The firewall is the third component of the test–monitor–protect lifecycle. Its effectiveness depends on the quality of data flowing from the other two layers:
+
+- **From testing**: guardrail rules (exported via `hb guardrails`) define the agent's scope and restriction boundaries. These configure the Tier 3 LLM judge's evaluation criteria.
+- **From testing + monitoring**: adversarial test logs provide training data for Tier 2 classifiers. More test cycles over time produce richer, more diverse training data — and therefore better Tier 2 accuracy.
+- **Back to monitoring**: production firewall verdicts (attacks blocked, false positives identified) can feed back into the monitoring layer as ground-truth signals, improving future test cycle targeting and Tier 2 retraining.
+
+The firewall is available as an open-source Python library ([hb-firewall](https://github.com/humanbound/hb-firewall), AGPL-3.0) and integrates with the Humanbound CLI for training agent-specific classifiers.
 
 ### Firewall Verdicts
 
