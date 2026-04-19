@@ -21,24 +21,9 @@ The lifecycle is automatic. When monitoring runs a new test cycle:
 
 ## Team Delegation
 
-When a finding is identified, someone needs to own it — investigate the root cause, implement a fix, and verify the resolution. Finding delegation assigns this responsibility to a specific team member and tracks progress through resolution.
+When a finding is identified, someone needs to own it — investigate the root cause, implement a fix, and verify the resolution. Finding delegation assigns this responsibility to a specific team member and tracks progress through four stages: unassigned → assigned → in progress → verified.
 
-### Why Delegation Matters
-
-Without delegation, findings sit in a list with no accountability. Nobody knows who's working on what, which critical vulnerabilities are being actively addressed, and which are falling through the cracks. Delegation creates a clear chain of responsibility:
-
-- **Security lead** reviews findings after a test cycle, assigns critical and high-severity findings to the appropriate developers
-- **Developer** receives the assignment, investigates the agent's behavior, implements a fix
-- **Security lead** verifies the fix by reviewing the next test cycle's results
-
-### Delegation States
-
-| State | Who acts | What happens |
-|---|---|---|
-| **Unassigned** | Security lead | Finding exists but no one owns it yet |
-| **Assigned** | Security lead → Developer | Finding assigned to a team member. Timestamp recorded. |
-| **In Progress** | Developer | Developer is actively working on a fix |
-| **Verified** | Security lead | Fix confirmed — finding should not reappear in next test cycle |
+See [Team & Collaboration](../management/collaboration.md) for the full delegation workflow, roles, and webhook notifications.
 
 ### CLI Usage
 
@@ -49,13 +34,6 @@ hb findings
 # Filter by status or severity
 hb findings --status open
 hb findings --severity critical
-
-# Assign a finding to a team member
-hb findings assign <finding-id> --assignee <member-id>
-
-# Update delegation status
-hb findings assign <finding-id> --status in_progress
-hb findings assign <finding-id> --status verified
 
 # Mark a finding as fixed
 hb findings update <finding-id> --status fixed
