@@ -77,16 +77,17 @@ With delegation:
 ### CLI Usage
 
 ```bash
-# Assign a finding to a team member
+# Assign a finding to a team member (delegation status auto-set to "assigned")
 hb findings assign <finding-id> --assignee <member-id>
 
-# Update delegation status as work progresses
-hb findings assign <finding-id> --status in_progress
-hb findings assign <finding-id> --status verified
+# Update delegation progress (--status here refers to the delegation state, not the finding state)
+hb findings assign <finding-id> --status in_progress    # developer is working on it
+hb findings assign <finding-id> --status verified       # fix confirmed
 
-# View all findings with their assignment status
+# View findings with their assignment and delegation status
 hb findings
-hb findings --status open
+hb findings --status open          # filter by finding status (open/fixed/stale/regressed)
+hb findings --severity critical    # filter by severity
 ```
 
 ### Webhook Notifications
