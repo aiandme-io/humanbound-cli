@@ -48,6 +48,8 @@ nav:
     - Log Upload: testing/log-upload.md
     - Assessments: testing/assessments.md
     - Reports: testing/reports.md
+  - 📋 Compliance:
+    - Compliance Testing: compliance/index.md
   - 🛡️ Defense:
     - Firewall: defense/firewall.md
     - Guardrails: defense/guardrails.md
