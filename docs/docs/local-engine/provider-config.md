@@ -73,13 +73,13 @@ hb test --endpoint ./config.json --scope ./scope.json --wait
 !!! note "Ollama quality"
     Local models produce lower-quality attacks and evaluations than GPT-4 or Claude. For best results, use a cloud provider. Use ollama when isolation is more important than accuracy.
 
-## After Login: Managed LLM
+## After Login: Humanbound Provider
 
-When logged in, you can use Humanbound's managed LLM — no API key needed:
+When logged in, you can use Humanbound as your LLM provider — no external API key needed:
 
 ```bash
 hb login
 hb config set provider managed
 ```
 
-This uses Humanbound's infrastructure (credits-based). Your local API key is removed.
+This routes LLM calls through Humanbound's infrastructure using your account credits (free tier: 3 scans/month). Your local API key is removed — your Humanbound account handles authentication and billing.
