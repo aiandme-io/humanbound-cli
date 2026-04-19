@@ -69,13 +69,6 @@ class _LocalRun:
                 llm_pinger=llm,
             )
 
-            # Merge compliance profile if specified
-            if self.config.compliance:
-                from .compliance import merge_compliance_into_scope
-                scope = merge_compliance_into_scope(scope, self.config.compliance)
-                if self.config.debug:
-                    print(f"  Compliance profile: {self.config.compliance}", flush=True)
-
             # Build experiment dict (matches engine's expected shape)
             experiment = {
                 "id": self.experiment_id,

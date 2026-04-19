@@ -176,12 +176,6 @@ def _print_next(suggestions: list):
     help="Explicit scope file (YAML/JSON with permitted/restricted intents)"
 )
 @click.option(
-    "--compliance",
-    type=str,
-    default=None,
-    help="Compliance profile: fca, dora, insurance, hipaa, legal, ecommerce, ai_act"
-)
-@click.option(
     "--debug",
     is_flag=True,
     default=False,
@@ -199,7 +193,7 @@ def test_command(test_category: str, testing_level: str, name: str, description:
                  no_auto_start: bool,
                  wait: bool, fail_on: str, context: str, local: bool,
                  repo: str, prompt: str, scope_path: str,
-                 compliance: str, debug: bool, verbose: bool):
+                 debug: bool, verbose: bool):
     """Run security tests against your agent.
 
     \b
@@ -324,7 +318,6 @@ def test_command(test_category: str, testing_level: str, name: str, description:
             repo_path=repo,
             prompt_path=prompt,
             scope_path=scope_path,
-            compliance=compliance,
             debug=debug,
             verbose=verbose,
         )

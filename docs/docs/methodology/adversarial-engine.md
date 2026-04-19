@@ -149,6 +149,4 @@ restricted:
 more_info: "FCA regulated financial services. COBS 9 suitability, PRIN 6 fair treatment."
 ```
 
-The engine attacks these compliance boundaries using the same adversarial techniques — encoding, authority claims, social engineering — testing whether an attacker can FORCE the agent to violate regulatory requirements.
-
-For testing whether the agent FOLLOWS compliance rules during legitimate interactions (not attacks), dedicated compliance orchestrators are planned for a future release.
+The engine attacks these compliance boundaries using the same adversarial techniques — encoding, authority claims, social engineering — testing whether an attacker can force the agent to violate regulatory requirements.
