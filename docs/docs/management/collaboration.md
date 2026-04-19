@@ -80,9 +80,9 @@ With delegation:
 # Assign a finding to a team member (delegation status auto-set to "assigned")
 hb findings assign <finding-id> --assignee <member-id>
 
-# Update delegation progress (--status here refers to the delegation state, not the finding state)
-hb findings assign <finding-id> --status in_progress    # developer is working on it
-hb findings assign <finding-id> --status verified       # fix confirmed
+# Update delegation progress
+hb findings assign <finding-id> --delegation-status in_progress    # developer is working on it
+hb findings assign <finding-id> --delegation-status verified       # fix confirmed
 
 # View findings with their assignment and delegation status
 hb findings

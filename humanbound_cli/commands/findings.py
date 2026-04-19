@@ -175,7 +175,7 @@ def update_finding(finding_id: str, status: str, severity: str):
 @findings_group.command("assign")
 @click.argument("finding_id")
 @click.option("--assignee", required=True, help="Member ID to assign the finding to")
-@click.option("--status", "delegation_status",
+@click.option("--delegation-status", "delegation_status",
               type=click.Choice(["assigned", "in_progress", "verified"]),
               default="assigned",
               help="Delegation status (default: assigned)")
@@ -187,7 +187,7 @@ def assign_finding(finding_id: str, assignee: str, delegation_status: str):
     \b
     Examples:
       hb findings assign abc123 --assignee member-uuid
-      hb findings assign abc123 --assignee member-uuid --status in_progress
+      hb findings assign abc123 --assignee member-uuid --delegation-status in_progress
     """
     client = HumanboundClient()
 
