@@ -345,11 +345,14 @@ class TestPostureCommands:
         data = json.loads(result.output)
         assert "score" in data or "grade" in data
 
-    @patch("humanbound_cli.commands.posture.HumanboundClient")
-    def test_posture_not_authenticated(self, MockClient):
+    @patch("humanbound_cli.commands.posture.get_runner")
+    def test_posture_not_authenticated(self, mock_get_runner):
+        from conftest import platform_runner
+        from humanbound_cli.exceptions import NotAuthenticatedError
         mock = _make_mock_client()
         mock.is_authenticated.return_value = False
-        MockClient.return_value = mock
+        mock.get.side_effect = NotAuthenticatedError()
+        mock_get_runner.return_value = platform_runner(mock)
         result = runner.invoke(cli, ["posture"])
         assert result.exit_code == 1
 
@@ -451,11 +454,15 @@ class TestRedteamCommands:
 # ---------------------------------------------------------------------------
 
 class TestLogsCommands:
-    @patch("humanbound_cli.commands.logs.HumanboundClient")
-    def test_logs_not_authenticated(self, MockClient):
+    @patch("humanbound_cli.commands.logs.get_runner")
+    def test_logs_not_authenticated(self, mock_get_runner):
+        from conftest import platform_runner
+        from humanbound_cli.exceptions import NotAuthenticatedError
         mock = _make_mock_client()
         mock.is_authenticated.return_value = False
-        MockClient.return_value = mock
+        mock.get.side_effect = NotAuthenticatedError()
+        mock.list_experiments.side_effect = NotAuthenticatedError()
+        mock_get_runner.return_value = platform_runner(mock)
         result = runner.invoke(cli, ["logs"])
         assert result.exit_code == 1
 
@@ -464,27 +471,55 @@ class TestLogsCommands:
 # Edge cases: unauthenticated access across commands
 # ---------------------------------------------------------------------------
 
-COMMANDS_REQUIRING_AUTH = [
+# Commands that construct HumanboundClient directly.
+COMMANDS_WITH_DIRECT_CLIENT = [
     ["findings"],
     ["members"],
     ["api-keys"],
     ["assessments"],
     ["campaigns"],
     ["webhooks"],
-    ["posture"],
-    ["logs"],
     ["providers", "list"],
 ]
+
+# Commands that access the API via get_runner().client.
+COMMANDS_WITH_RUNNER = [
+    ["posture"],
+    ["logs"],
+]
+
+COMMANDS_REQUIRING_AUTH = COMMANDS_WITH_DIRECT_CLIENT + COMMANDS_WITH_RUNNER
 
 
 @pytest.mark.parametrize("cmd", COMMANDS_REQUIRING_AUTH)
 def test_unauthenticated_exits_nonzero(cmd):
     """Commands requiring auth must fail gracefully when not authenticated."""
+    from humanbound_cli.exceptions import NotAuthenticatedError
+    from conftest import platform_runner
+
     module_name = cmd[0].replace("-", "_")
-    patch_path = f"humanbound_cli.commands.{module_name}.HumanboundClient"
-    with patch(patch_path) as MockClient:
-        mock = _make_mock_client()
-        mock.is_authenticated.return_value = False
-        MockClient.return_value = mock
-        result = runner.invoke(cli, cmd)
-        assert result.exit_code != 0, f"`hb {' '.join(cmd)}` should fail when unauthenticated"
+    mock = _make_mock_client()
+    mock.is_authenticated.return_value = False
+    # Make every client call raise the auth error — covers whichever method
+    # a given command reaches first.
+    for method in ("get", "post", "put", "delete",
+                   "list_experiments", "list_providers", "list_findings",
+                   "list_projects", "list_members", "list_api_keys",
+                   "list_campaigns", "list_assessments", "list_webhooks",
+                   "get_project_logs", "get_experiment_logs"):
+        getattr(mock, method).side_effect = NotAuthenticatedError()
+
+    if cmd in COMMANDS_WITH_RUNNER:
+        patch_path = f"humanbound_cli.commands.{module_name}.get_runner"
+        with patch(patch_path) as mock_get_runner:
+            mock_get_runner.return_value = platform_runner(mock)
+            result = runner.invoke(cli, cmd)
+    else:
+        patch_path = f"humanbound_cli.commands.{module_name}.HumanboundClient"
+        with patch(patch_path) as MockClient:
+            MockClient.return_value = mock
+            result = runner.invoke(cli, cmd)
+
+    assert result.exit_code != 0, (
+        f"`hb {' '.join(cmd)}` should fail when unauthenticated"
+    )

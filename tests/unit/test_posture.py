@@ -148,6 +148,7 @@ class TestErrorCases:
     def test_not_authenticated(self, mock_get_runner):
         mock = _make_client()
         mock.is_authenticated.return_value = False
+        mock.get.side_effect = NotAuthenticatedError()
         mock_get_runner.return_value = platform_runner(mock)
         result = runner.invoke(cli, ["posture"])
         assert result.exit_code != 0

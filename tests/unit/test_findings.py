@@ -202,7 +202,7 @@ class TestFlags:
         MockCls.return_value = mock
         result = runner.invoke(cli, [
             "findings", "assign", "find-001",
-            "--assignee", "mem-001", "--status", "in_progress",
+            "--assignee", "mem-001", "--delegation-status", "in_progress",
         ])
         assert_exit_ok(result)
         call_args = mock.update_finding.call_args

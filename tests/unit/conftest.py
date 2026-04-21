@@ -34,23 +34,36 @@ from humanbound_cli.exceptions import (
 # Runner mocks for get_runner() command tests
 # ---------------------------------------------------------------------------
 
-def platform_runner(client):
-    """Build a PlatformTestRunner-shaped mock that exposes `.client`.
-
-    Usage in a test file:
-
-        from humanbound_cli.commands import logs as logs_cmd
-
-        @patch.object(logs_cmd, "get_runner")
-        def test_something(mock_get_runner, runner):
-            client = _make_client(list_experiments=...)
-            mock_get_runner.return_value = platform_runner(client)
-            result = runner.invoke(cli, ["logs"])
-            client.list_experiments.assert_called()
+def platform_runner(
+    client,
+    *,
+    experiment_id: str = "exp-new",
+    status: str = "Finished",
+    result=None,
+    log_count: int = 0,
+):
+    """Build a PlatformTestRunner-shaped mock that exposes `.client` plus
+    sensible defaults for the TestRunner abstract methods (`start`,
+    `get_status`, `get_result`). Tests can override any return value by
+    reassigning, e.g. ``runner.start.return_value = "exp-123"``.
     """
     from humanbound_cli.engine.platform_runner import PlatformTestRunner
+    from humanbound_cli.engine.runner import TestStatus, TestResult
+
     r = MagicMock(spec=PlatformTestRunner)
     r.client = client
+    r.start.return_value = experiment_id
+    r.get_status.return_value = TestStatus(
+        experiment_id=experiment_id, status=status, log_count=log_count,
+    )
+    r.get_result.return_value = result or TestResult(
+        experiment_id=experiment_id,
+        name="test",
+        status=status,
+        test_category="humanbound/adversarial/owasp_agentic",
+        testing_level="unit",
+        stats={"pass": 0, "fail": 0, "total": 0},
+    )
     return r
 
 
