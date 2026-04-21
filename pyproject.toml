@@ -108,6 +108,10 @@ markers = [
     "hb_category(name): mark test for a specific category",
 ]
 timeout = 60
+# tests/unit/test_*.py does `from conftest import ...` directly, so its
+# directory must be on sys.path. (Adding an __init__.py there would also
+# work but would change test discovery semantics.)
+pythonpath = ["tests/unit"]
 
 [tool.ruff]
 line-length = 100
