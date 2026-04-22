@@ -7,7 +7,7 @@ for JSON-RPC).
 
 Usage:
     hb mcp                       # start server
-    pip install humanbound-cli[mcp]  # install with MCP deps
+    pip install humanbound[mcp]  # install with MCP deps
 """
 
 import json

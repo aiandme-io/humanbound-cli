@@ -7,7 +7,7 @@ as part of your test suite.
 
 Usage:
     # Install with pytest support
-    pip install humanbound-cli[pytest]
+    pip install humanbound[pytest]
 
     # Run security tests
     pytest --hb tests/

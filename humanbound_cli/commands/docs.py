@@ -20,7 +20,7 @@ DOCS_URLS = {
     "owasp": "https://docs.humanbound.ai/owasp-llm-top-10",
     "firewall": "https://docs.humanbound.ai/firewall-oss",
     "examples": "https://docs.humanbound.ai/examples",
-    "github": "https://github.com/Humanbound/humanbound-cli",
+    "github": "https://github.com/humanbound/humanbound",
 }
 
 
