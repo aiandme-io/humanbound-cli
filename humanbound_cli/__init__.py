@@ -5,6 +5,6 @@
 from importlib.metadata import version as _v
 
 try:
-    __version__ = _v("humanbound-cli")
+    __version__ = _v("humanbound")
 except Exception:
     __version__ = "dev"
