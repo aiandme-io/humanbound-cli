@@ -15,7 +15,7 @@ from rich.panel import Panel
 
 from ..client import HumanboundClient
 from ..exceptions import APIError, NotAuthenticatedError
-from .test import _load_integration
+from .test import _load_integration, _resolve_context
 
 console = Console()
 
@@ -1022,8 +1022,7 @@ def _auto_test(client, project_id, default_integration, context=None, level="uni
         # Build configuration with integration + optional context
         configuration = {"integration": default_integration}
         if context:
-            ctx_path = Path(context)
-            ctx_value = ctx_path.read_text().strip() if ctx_path.is_file() else context
+            ctx_value = _resolve_context(context)
             if len(ctx_value) > 1500:
                 console.print(
                     f"[red]Context too long ({len(ctx_value)} chars). Maximum is 1,500.[/red]"

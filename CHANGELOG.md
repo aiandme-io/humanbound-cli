@@ -16,6 +16,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`_SCAN_PHASES`, `_scan_with_progress`, `_display_scope`,
   `_display_dashboard`, `_get_source_description`, and the import of
   `_load_integration`). They are now restored inline in `commands/connect.py`.
+- **`hb test --context` / `hb connect --context`** with a long literal
+  string no longer crashes with `OSError: File name too long` (errno 63 on
+  macOS). The code used `Path(value).is_file()` to decide whether the
+  `--context` flag held a path or a literal; `Path.is_file()` calls
+  `stat()`, which fails with `ENAMETOOLONG` rather than returning `False`
+  when given a long string. Both commands now share `_resolve_context()`
+  which wraps the stat in a try/except and falls back to literal on error.
+- **Local test failures no longer print a raw Python traceback to users.**
+  `engine/local_runner.py` previously logged the full `traceback.format_exc()`
+  at ERROR level for every exception, including expected configuration
+  errors (no LLM provider set, etc.). Tracebacks now log at DEBUG, so
+  end-users see only the clean `Local test failed: ...` message. Run with
+  `--debug` to see the full stack.
+- **`hb test` no longer falls silently into local mode when the user is
+  signed in but has no project selected.** The runner selection is still
+  "login + project → Platform, otherwise local," but previously a logged-in
+  user without a project would be routed to local, then fail with the
+  misleading "No LLM provider configured" error. Users in this state now
+  get a dedicated message pointing at `hb projects use`, `hb connect`, or
+  `hb test --local`.
 
 ### Added
 - **Local flow for `hb connect`** — when the user is not authenticated,
