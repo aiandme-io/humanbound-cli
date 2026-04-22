@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] — 2026-04-21
 
 ### Changed
+- **Contribution policy**: external contributions are now accepted under the
+  Humanbound Contributor License Agreement (see `CLA.md`) rather than the
+  DCO sign-off, aligning with the sibling `humanbound-firewall` project. The
+  library remains Apache-2.0 licensed.
 - **Renamed package**: `humanbound-cli` → `humanbound`. This consolidates the
   Humanbound brand with a single PyPI install name. The old name remains on
   PyPI as a transitional meta-package through 2026-06-20, emitting a
@@ -38,10 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `hb-firewall`). `pip install humanbound[firewall]` pulls both packages
   together.
 - **OSS hygiene documents**: `SECURITY.md`, `CODE_OF_CONDUCT.md`,
-  `CONTRIBUTING.md`, `DCO.md`, `TRADEMARK.md`, `ROADMAP.md`.
+  `CONTRIBUTING.md`, `CLA.md`, `TRADEMARK.md`, `ROADMAP.md`.
 - **GitHub automation**: CI matrix (Python 3.10 / 3.11 / 3.12), release
   workflow with PyPI Trusted Publishing (OIDC) and sigstore attestations,
-  issue/PR templates, dependabot, DCO enforcement.
+  issue/PR templates, dependabot, CLAAssistant configuration.
 - **Dev tooling**: `.pre-commit-config.yaml`, ruff + mypy configuration in
   `pyproject.toml`.
 - Transitional stub `humanbound-cli==1.2.0` published alongside so existing

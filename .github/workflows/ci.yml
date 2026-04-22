@@ -11,20 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dco:
-    name: DCO sign-off
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: christophebedard/dco-check@0.5.0
-        with:
-          default-branch: main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   lint:
     name: Lint + type-check
     runs-on: ubuntu-latest

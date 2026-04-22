@@ -37,17 +37,18 @@ Use the provided templates:
 **Do not file security issues publicly.** See [SECURITY.md](./SECURITY.md) for
 the private disclosure channel.
 
-## Developer Certificate of Origin (DCO) — required
+## Contributor License Agreement (CLA) — required
 
-Every commit in a pull request must carry a `Signed-off-by` trailer. Add it
-automatically with `git commit -s`. See [DCO.md](./DCO.md) for the full text
-and the reasoning. CI blocks merging without it.
+Every external contribution must be covered by the
+[Humanbound Contributor License Agreement](./CLA.md). The CLA gives
+Humanbound the operational flexibility to evolve the project (including
+offering managed services on the Humanbound Platform) while preserving Your
+right to use Your own contributions elsewhere and Your authorship in the
+project's git history.
 
-Humanbound uses DCO rather than a CLA because the project is Apache-2.0 —
-there is no dual-license or commercial relicensing planned, so the DCO's
-simpler "I have the right to submit this" certification is sufficient.
-(The sibling `humanbound-firewall` project is dual-licensed and does require
-a CLA — different policy for a different license.)
+The first time you open a pull request, the CLAAssistant bot will comment
+with a one-line instruction to sign. Sign once and all your future
+contributions are covered.
 
 ## Change workflow
 
@@ -56,7 +57,7 @@ a CLA — different policy for a different license.)
 3. Add or update tests
 4. Ensure `pytest`, `ruff check`, and `mypy` pass locally
 5. Update [CHANGELOG.md](./CHANGELOG.md) under the `[Unreleased]` section
-6. Commit with `-s` (sign-off) and open a pull request using the template
+6. Open a pull request using the template
 
 ### Code style
 
@@ -93,7 +94,7 @@ Maintainers cut releases on a rolling basis, not on a fixed cadence.
 
 | Step | Who | What |
 |---|---|---|
-| PR review | Maintainer | Reviews code, tests, CHANGELOG, sign-off |
+| PR review | Maintainer | Reviews code, tests, CHANGELOG |
 | Merge to `main` | Maintainer | Squash merge |
 | Tag `vX.Y.Z` | Maintainer | Triggers `release.yml` |
 | Publish to PyPI | CI via Trusted Publishing | No tokens, sigstore-signed |
