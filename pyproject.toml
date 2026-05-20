@@ -50,6 +50,7 @@ dependencies = [
     "pyyaml>=6.0.0",
     "pydantic>=2.0",
     "pyperclip>=1.8.0",
+    "posthog>=3.0",
 ]
 
 [project.optional-dependencies]
