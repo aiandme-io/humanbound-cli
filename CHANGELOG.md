@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Anonymous usage telemetry via PostHog (`hb telemetry status|enable|disable`).
+  On by default; disable with `hb telemetry disable`, `HB_TELEMETRY_DISABLED=1`,
+  or `DO_NOT_TRACK=1`. Auto-disabled in CI and non-TTY environments. See
+  [`PRIVACY.md`](./PRIVACY.md) for the full disclosure of what is and isn't
+  collected.
+
 ## [2.0.3] — 2026-05-11
 
 ### Changed
