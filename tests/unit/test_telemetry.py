@@ -82,8 +82,6 @@ def _write_state(tmp_home: Path, state: dict) -> None:
     f.write_text(json.dumps(state))
 
 
-
-
 # === Section 1 — Baseline properties ===
 
 

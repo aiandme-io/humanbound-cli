@@ -432,9 +432,7 @@ def test_command(
                 raise SystemExit(1)
             provider = next((p for p in providers if p.get("is_default")), providers[0])
             provider_id = provider.get("id")
-            console.print(
-                f"  Provider: {provider.get('name', 'unknown').upper()} ({provider_id})"
-            )
+            console.print(f"  Provider: {provider.get('name', 'unknown').upper()} ({provider_id})")
 
         # Resolve endpoint integration
         integration = None

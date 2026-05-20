@@ -14,8 +14,6 @@ from ..exceptions import AuthenticationError
 console = Console()
 
 
-
-
 @click.group("auth")
 def auth_group():
     """Authentication commands."""
